@@ -1,0 +1,8 @@
+cd "D:\MEMORIA T\RCV\taller-rcv\backend"
+npx nodemon src/server.js
+
+
+
+
+
+Start-Process powershell.exe -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -File "D:\MEMORIA T\RCV\taller-rcv\backend\verify-rcv.ps1" -PauseOnExit'

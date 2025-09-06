@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editar Servicios — RCV</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+      --accent:#245C8D; --ok:#22c55e; --warn:#f59e0b;
+      --radius:14px; --shadow:0 10px 30px rgba(2,6,23,.35);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a0f1a);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(148,163,184,.12)}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .row{display:flex;gap:8px;align-items:center}
+    .btn{border:none;border-radius:10px;padding:10px 12px;background:#1f2937;color:#fff;cursor:pointer}
+    .btn.primary{background:var(--accent)}
+    .btn.ok{background:var(--ok);color:#052e16}
+    .btn.warn{background:var(--warn);color:#111}
+    .grid{display:grid;grid-template-columns:280px 1fr;gap:16px}
+    .card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;border:1px solid rgba(148,163,184,.12)}
+    input[type="text"],input[type="url"],textarea,select{
+      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:#0b1220;color:var(--text)
+    }
+    textarea{min-height:80px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{display:grid;grid-template-columns:80px 1fr 160px 120px 120px auto;gap:8px;align-items:center;
+          padding:10px;border:1px dashed rgba(148,163,184,.35);border-radius:10px;background:#0b1220}
+    .item.dragging{opacity:.5}
+    .item .imgph{width:100%;height:48px;border-radius:8px;object-fit:cover;background:#0b1220;border:1px solid rgba(148,163,184,.25)}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .small{font-size:12px;color:var(--muted)}
+    @media(max-width:1000px){
+      .grid{grid-template-columns:1fr}
+      .item{grid-template-columns:70px 1fr 140px 1fr auto}
+      .item .desc{grid-column: 1 / -2}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div class="row">
+        <img src="img/logo.png" alt="RCV" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#0b1220">
+        <strong>Editor de Servicios — RCV</strong>
+        <span id="status" class="small" style="padding:4px 8px;border:1px solid rgba(148,163,184,.25);border-radius:999px">Listo</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnExport">Exportar JSON</button>
+        <button class="btn" id="btnImport">Importar JSON</button>
+        <button class="btn ok" id="btnSave">Guardar</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- Filtros y nuevo -->
+    <aside class="card">
+      <h3>Nuevo servicio</h3>
+      <div class="small">IDs como <code>w1..w12</code> son compatibles con las tarjetas actuales.</div>
+      <label>ID</label><input id="ns_id" type="text" placeholder="w13">
+      <label>Título</label><input id="ns_title" type="text" placeholder="Ajuste de válvulas">
+      <label>Categoría(s)</label><input id="ns_cat" type="text" placeholder="mecanica / diagnostico / mantenimiento / repuestos">
+      <label>Descripción</label><textarea id="ns_desc" placeholder="Descripción breve del servicio"></textarea>
+      <label>Imagen (URL)</label><input id="ns_img" type="url" placeholder="img/services/valvulas.jpg">
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="btnAdd">Añadir</button>
+      </div>
+
+      <div class="toolbar" style="margin-top:16px">
+        <select id="fcat">
+          <option value="all">Todas las categorías</option>
+          <option value="mecanica">Mecánica</option>
+          <option value="diagnostico">Diagnóstico</option>
+          <option value="mantenimiento">Mantenimiento</option>
+          <option value="repuestos">Repuestos</option>
+        </select>
+        <input id="fq" type="text" placeholder="Buscar por texto...">
+      </div>
+      <div class="small">Arrastra los servicios en la lista para cambiar el orden.</div>
+    </aside>
+
+    <!-- Lista editable -->
+    <section class="card">
+      <h3>Servicios</h3>
+      <div id="list" class="list"></div>
+      <input type="file" id="fileInput" accept="application/json" style="display:none" />
+    </section>
+  </main>
+
+  <script>
+    const DEF = {
+      services: [
+        { id:'w1', title:'Frenos y suspensión', cat:'mecanica', desc:'Pastillas, discos, amortiguadores y bujes.', img:'img/services/frenos-susp.jpg' },
+        { id:'w2', title:'Sistema de refrigeración', cat:'mecanica', desc:'Radiador, bomba de agua, termostato y fugas.', img:'img/services/refrigeracion.jpg' },
+        { id:'w3', title:'Cambio de aceite y filtros', cat:'mecanica mantenimiento', desc:'Lubricante recomendado y control de niveles.', img:'img/services/aceite-filtros.jpg' }
+      ]
+    };
+
+    let data = loadData();
+    let filterCat = 'all', filterQ = '';
+
+    const $ = (s)=>document.querySelector(s);
+    const listEl = $('#list');
+    const statusEl = $('#status');
+
+    function loadData(){
+      try{
+        const raw = localStorage.getItem('contenidoInformacion');
+        const base = raw ? JSON.parse(raw) : {};
+        if(!Array.isArray(base.services)) base.services = DEF.services;
+        return base;
+      }catch(e){
+        return { services: DEF.services };
+      }
+    }
+
+    function saveData(){
+      localStorage.setItem('contenidoInformacion', JSON.stringify(data));
+      setStatus('Guardado');
+    }
+
+    function setStatus(txt){ statusEl.textContent = txt; }
+
+    function render(){
+      listEl.innerHTML = '';
+      const items = data.services.filter(s=>{
+        const catOk = filterCat==='all' || (s.cat||'').toLowerCase().includes(filterCat);
+        const q = filterQ.trim().toLowerCase();
+        const txt = (s.title+' '+(s.desc||'')+' '+(s.cat||'')).toLowerCase();
+        return catOk && (!q || txt.includes(q));
+      });
+
+      items.forEach((s,idx)=>{
+        const el = document.createElement('div');
+        el.className = 'item'; el.draggable = true; el.dataset.id = s.id;
+
+        el.innerHTML = `
+          <input class="id" type="text" value="${s.id}">
+          <input class="title" type="text" value="${s.title}">
+          <input class="cat" type="text" value="${s.cat||''}">
+          <input class="img" type="url" value="${s.img||''}">
+          <input class="desc" type="text" value="${s.desc||''}">
+          <div class="row">
+            <button class="btn warn del">Eliminar</button>
+          </div>
+        `;
+
+        // Bind cambios
+        el.querySelector('.id').oninput = (e)=>{ s.id = e.target.value; setStatus('Sin guardar'); };
+        el.querySelector('.title').oninput = (e)=>{ s.title = e.target.value; setStatus('Sin guardar'); };
+        el.querySelector('.cat').oninput = (e)=>{ s.cat = e.target.value; setStatus('Sin guardar'); };
+        el.querySelector('.img').oninput = (e)=>{ s.img = e.target.value; setStatus('Sin guardar'); };
+        el.querySelector('.desc').oninput = (e)=>{ s.desc = e.target.value; setStatus('Sin guardar'); };
+        el.querySelector('.del').onclick = ()=>{ 
+          const pos = data.services.indexOf(s); 
+          if(pos>-1){ data.services.splice(pos,1); render(); setStatus('Sin guardar'); }
+        };
+
+        // Drag
+        el.addEventListener('dragstart', ()=>{ el.classList.add('dragging'); });
+        el.addEventListener('dragend', ()=>{
+          el.classList.remove('dragging');
+          // Reordenar según DOM
+          const newOrder = Array.from(listEl.children).map(c=>c.querySelector('.id').value);
+          data.services.sort((a,b)=> newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
+          setStatus('Sin guardar');
+        });
+
+        listEl.appendChild(el);
+      });
+
+      // Área de drop
+      listEl.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        const dragging = listEl.querySelector('.dragging');
+        if(!dragging) return;
+        const after = Array.from(listEl.querySelectorAll('.item:not(.dragging)')).find(item=>{
+          const box = item.getBoundingClientRect();
+          return e.clientY <= box.top + box.height/2;
+        });
+        if(!after) listEl.appendChild(dragging); else listEl.insertBefore(dragging, after);
+      });
+    }
+
+    // Nuevo
+    $('#btnAdd').onclick = ()=>{
+      const s = {
+        id: $('#ns_id').value.trim() || 'w' + (data.services.length+1),
+        title: $('#ns_title').value.trim() || 'Servicio',
+        cat: $('#ns_cat').value.trim() || 'mecanica',
+        desc: $('#ns_desc').value.trim() || '',
+        img: $('#ns_img').value.trim() || ''
+      };
+      data.services.push(s);
+      // limpiar
+      ['ns_id','ns_title','ns_cat','ns_desc','ns_img'].forEach(id=>$('#'+id).value='');
+      render(); setStatus('Sin guardar');
+    };
+
+    // Filtros
+    $('#fcat').onchange = (e)=>{ filterCat = e.target.value; render(); };
+    $('#fq').oninput = (e)=>{ filterQ = e.target.value; render(); };
+
+    // Guardar/Exportar/Importar
+    $('#btnSave').onclick = saveData;
+
+    $('#btnExport').onclick = ()=>{
+      const blob = new Blob([JSON.stringify({services:data.services},null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'servicios-rcv.json';
+      a.click();
+    };
+
+    $('#btnImport').onclick = ()=> document.getElementById('fileInput').click();
+    document.getElementById('fileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const json = JSON.parse(reader.result);
+          if(Array.isArray(json)) data.services = json;
+          else if(Array.isArray(json.services)) data.services = json.services;
+          else return alert('JSON inválido: se esperaba un array o {services:[...] }');
+          render(); setStatus('Sin guardar');
+        }catch(err){ alert('JSON inválido'); }
+      };
+      reader.readAsText(file);
+    });
+
+    // Init
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Servicios Mecánicos RCV</title>
+
+  <!-- API base para producción -->
+  <meta name="rcv-api" content="https://rcv-api-nulp72qabq-uc.a.run.app/api">
+  <script>
+    (function(){
+      const api = document.querySelector('meta[name="rcv-api"]')?.content || 'http://localhost:3001/api';
+      const cur = localStorage.getItem('API_BASE');
+      if (cur !== api) localStorage.setItem('API_BASE', api);
+    })();
+  </script>
+
+  <style>
+    :root{
+      --bg:#f4f6f8; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --accent:#245C8D; /* Azul RCV */
+      --accent-2:#D72828; /* Rojo RCV */
+      --shadow:0 8px 24px rgba(15,23,42,.08);
+      --radius:16px; --radius-sm:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    .container{max-width:1100px;margin:0 auto;padding:0 16px}
+    .topbar{position:sticky;top:0;z-index:60;background:#fff;box-shadow:var(--shadow)}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:56px;height:auto;border-radius:10px;object-fit:contain;background:#f8f8f8}
+    .brand .title{font-weight:800;white-space:nowrap}
+    nav ul{margin:0;padding:0;list-style:none;display:flex;gap:12px}
+    nav a{display:block;padding:8px 12px;border-radius:10px}
+    nav a:hover{background:rgba(0,0,0,.05)}
+    .nav-cta{background:var(--accent);color:#fff}
+    /* Login en topbar + separador */
+    .nav-login{border:1px solid #e5e7eb}
+    .nav-login:hover{background:#f3f4f6}
+    .nav-sep{width:1px;height:24px;background:#e5e7eb;margin:0 4px;border-radius:1px;display:inline-block;vertical-align:middle}
+
+    /* Botón hamburguesa */
+    .hamb{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px;background:#fff;cursor:pointer}
+    .hamb:active{transform:scale(.98)}
+
+    /* Drawer */
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:70}
+    .drawer-backdrop.open{opacity:1;pointer-events:auto}
+    .drawer{position:fixed;top:0;right:0;height:100%;width:min(92vw,360px);background:#fff;box-shadow:-8px 0 24px rgba(15,23,42,.18);transform:translateX(100%);transition:transform .25s ease;z-index:80;display:flex;flex-direction:column}
+    .drawer.open{transform:none}
+    .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #f1f5f9}
+    .drawer-title{font-weight:800}
+    .drawer-body{padding:16px;display:flex;flex-direction:column;gap:12px}
+    .drawer-note{color:var(--muted);background:#f8fafc;padding:12px;border-radius:12px;border:1px dashed #e5e7eb}
+    .drawer-actions{margin-top:auto;padding:16px;border-top:1px solid #f1f5f9}
+    .btn{border:none;border-radius:12px;padding:10px 14px;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-ghost{background:#fff;border:1px solid #e5e7eb}
+
+    /* Hero */
+    .hero{background:#fff;margin-top:10px}
+    .hero-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;padding:32px;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero h1{margin:0 0 10px 0;font-size:clamp(22px,4.5vw,42px)}
+    .hero p{margin:0;color:var(--muted)}
+    .hero-actions{display:flex;gap:10px;margin-top:16px}
+    .hero-art{background:#f1f5f9;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .hero-art img{width:100%;height:auto;display:block}
+
+    /* Secciones */
+    section.block{margin:28px 0}
+    .block .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:14px;min-height:120px}
+    .sketch{background:repeating-linear-gradient(45deg,#f2f2f2,#f2f2f2 10px,#ececec 10px,#ececec 20px);border-radius:12px;height:120px;margin-bottom:8px}
+
+    /* Consulta estado */
+    .consulta{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    .panel{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+    .field{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .field label{width:140px;color:var(--muted)}
+    .field input{flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:10px}
+    .progress{height:10px;background:#f1f5f9;border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:45%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+
+    /* Testimonios */
+    .testi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .quote{background:#fff;padding:14px;border-radius:14px;box-shadow:var(--shadow);min-height:120px}
+
+    /* Redes + Galería */
+    .redes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .embed{background:#fff;height:220px;border-radius:14px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;color:#9aa3af;text-align:center;padding:10px}
+
+    /* Mapa & contacto */
+    .mapa-contacto{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .mapa{height:260px;border-radius:14px;box-shadow:var(--shadow);background:#e2e8f0;overflow:hidden}
+    .mapa iframe{width:100%;height:100%;border:0}
+    .contacto .row{display:flex;gap:8px}
+    .contacto input,.contacto textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px}
+
+    footer{margin-top:24px;background:#fff}
+    .footer-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;padding:16px}
+    .mini-map{height:120px;background:#e2e8f0;border-radius:10px}
+    .credits{color:var(--muted);font-size:13px}
+
+    /* Responsive */
+    @media (max-width:900px){
+      .hero-inner,.consulta,.mapa-contacto,.footer-inner{grid-template-columns:1fr}
+      .testi{grid-template-columns:1fr 1fr}
+      .grid{grid-template-columns:1fr 1fr}
+      nav ul{display:none}
+      /* .hamb visible */
+    }
+    @media (max-width:640px){
+      .grid,.testi,.redes{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- TOPBAR INYECTADO -->
+  <!-- Slot para que el loader inyecte el topbar unificado -->
+<div id="topbarSlot"></div>
+
+
+  <main class="container container--fluid">
+    <!-- HERO -->
+    <section class="hero block">
+      <div class="hero-inner">
+        <div>
+          <h1>Mecánica confiable y diagnósticos claros</h1>
+          <p>Reparación, mantenimiento, electrónicos y diagnóstico profesional. Agenda en línea o consúltanos por WhatsApp.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" id="btnWA" target="_blank" rel="noopener">Solicitar servicio</a>
+            <a class="btn btn-ghost" href="servicios.html">Ver servicios</a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <img id="heroImg" src="img/taller-frente.jpg" alt="Taller RCV" />
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICIOS -->
+    <section id="servicios" class="block">
+      <div class="head">
+        <h2 style="margin:0">Servicios</h2>
+        <div style="display:flex;gap:8px">
+          <select style="padding:10px;border:1px solid #e5e7eb;border-radius:10px">
+            <option>Todos</option>
+            <option>Mecánica</option>
+            <option>Diagnóstico</option>
+            <option>Mantenimiento</option>
+          </select>
+          <input placeholder="Buscar servicio…" style="padding:10px;border:1px solid #e5e7eb;border-radius:10px" />
+        </div>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <div class="sketch"></div>
+          <strong>Cambio de aceite</strong>
+          <p class="muted">Servicio rápido con filtros de calidad y control de niveles.</p>
+        </article>
+        <article class="card">
+          <div class="sketch"></div>
+          <strong>Diagnóstico computarizado</strong>
+          <p class="muted">Lectura OBD-II, interpretación de códigos y pruebas guiadas.</p>
+        </article>
+        <article class="card">
+          <div class="sketch"></div>
+          <strong>Frenos y suspensión</strong>
+          <p class="muted">Inspección y reparación con piezas compatibles y garantía.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- CONSULTA DE ESTADO -->
+    <section id="consulta" class="block">
+      <div class="head"><h2 style="margin:0">Consulta el estado de tu vehículo</h2></div>
+      <div class="consulta">
+        <div class="panel">
+          <div class="field"><label>Placa</label><input id="qPlaca" placeholder="ABC-1234" /></div>
+          <div class="field"><label>Nº de orden</label><input id="qOrden" placeholder="000123" /></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn btn-ghost" id="btnLimpiar">Limpiar</button>
+            <button class="btn btn-primary" id="btnConsultar">Consultar</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6"></div>
+            <div>
+              <div style="font-weight:700" id="estadoTitulo">Estado actual</div>
+              <div class="muted" style="color:var(--muted)" id="estadoSub">Ej. "En diagnóstico"</div>
+            </div>
+          </div>
+          <div class="progress"><div class="bar" id="estadoBar"></div></div>
+          <ul style="margin:10px 0 0 18px;color:var(--muted)">
+            <li>Recepción</li>
+            <li>Diagnóstico</li>
+            <li>Reparación</li>
+            <li>Calidad</li>
+            <li>Entregado</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIOS / REDES -->
+    <section class="block">
+      <div class="head"><h2 style="margin:0">Lo que dicen nuestros clientes</h2></div>
+      <div class="testi">
+        <div class="quote">“Servicio honesto y profesional.”</div>
+        <div class="quote">“Me explicaron el diagnóstico con claridad.”</div>
+        <div class="quote">“Excelente atención y rapidez.”</div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="head"><h2 style="margin:(0)">Redes y galería</h2></div>
+      <div class="redes">
+        <div class="embed">
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">Facebook</div>
+            <a id="fbLink" href="#" target="_blank" rel="noopener">Abrir Facebook</a>
+          </div>
+        </div>
+        <div class="embed">
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">TikTok</div>
+            <a id="ttLink" href="#" target="_blank" rel="noopener">Abrir TikTok</a>
+          </div>
+        </div>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <article class="card">
+          <div class="sketch" style="height:160px"></div>
+          <strong>Trabajos recientes</strong>
+          <div style="margin-top:6px"><a id="waCatLink" href="#" target="_blank" rel="noopener">Catálogo de WhatsApp</a></div>
+        </article>
+        <article class="card"><div class="sketch" style="height:160px"></div><strong>Antes / Después</strong></article>
+        <article class="card"><div class="sketch" style="height:160px"></div><strong>Clientes satisfechos</strong></article>
+      </div>
+    </section>
+
+    <!-- MAPA + CONTACTO -->
+    <section id="contacto" class="block mapa-contacto">
+      <div class="mapa"><iframe id="mapsFrame" title="Ubicación RCV" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+      <div class="panel contacto">
+        <h3 style="margin-top:0">Contáctanos</h3>
+        <div class="row">
+          <input placeholder="Nombre" />
+          <input placeholder="Teléfono" />
+        </div>
+        <input placeholder="Correo" />
+        <textarea rows="4" placeholder="Mensaje"></textarea>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <a class="btn btn-ghost" id="btnWA2" target="_blank" rel="noopener">WhatsApp</a>
+          <button class="btn btn-primary">Enviar</button>
+        </div>
+        <p class="muted" style="margin-top:8px">Tel: <span id="telSpan"></span> · WhatsApp: <span id="waSpan"></span></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <strong>Servicios Mecánicos RCV</strong>
+        <div class="muted">Dirección: <span id="addrSpan">—</span></div>
+        <div class="mini-map" aria-hidden="true"></div>
+      </div>
+      <div>
+        <div class="credits">© <span id="y"></span> RCV. Todos los derechos reservados.</div>
+        <div class="credits">Aviso de privacidad · Términos</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Año en footer
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // === Cargar "contenido de información" desde localStorage (si existe) ===
+    (function(){
+      const DEF = {
+        facebookUrl: 'https://www.facebook.com/tu-facebook',
+        tiktokUrl: 'https://www.tiktok.com/@tu-tiktok',
+        whatsappNumber: '+504 9561-5205',
+        whatsappCatalogUrl: 'https://wa.me/c/50495615205',
+        mapsEmbed: 'https://www.google.com/maps?q=Servicios+Mec%C3%A1nicos+RCV&output=embed',
+        heroImage: 'img/taller-frente.jpg',
+        direccion: 'Tu dirección aquí'
+      };
+      let info = null;
+      try { info = JSON.parse(localStorage.getItem('contenidoInformacion') || 'null'); } catch {}
+      const cfg = Object.assign({}, DEF, info || {});
+      const $ = (s)=>document.querySelector(s);
+
+      // Hero image
+      if ($('#heroImg') && cfg.heroImage) $('#heroImg').src = cfg.heroImage;
+
+      // WhatsApp links
+      const waPlain = (cfg.whatsappNumber || '').replace(/[^\d]/g,'');
+      const waMsg = encodeURIComponent('Hola, quiero cotizar un servicio');
+      const waHref = waPlain ? ('https://wa.me/' + waPlain + '?text=' + waMsg) : '#';
+      if ($('#btnWA'))  $('#btnWA').href = waHref;
+      if ($('#btnWA2')) $('#btnWA2').href = waHref;
+      if ($('#ctaWhatsApp')) $('#ctaWhatsApp').href = waHref; // si ya está inyectado
+
+      // *** Pasamos el CTA al topbar inyectado (por si aún no existe en el DOM) ***
+      window.__waHref = waHref;
+      window.__waHrefCTA = waHref;
+
+      if ($('#waSpan')) $('#waSpan').textContent = cfg.whatsappNumber || '+504 9561-5205';
+      if ($('#telSpan')) $('#telSpan').textContent = cfg.telefono || cfg.whatsappNumber || '+504 9561-5205';
+
+      if ($('#fbLink')) $('#fbLink').href = cfg.facebookUrl;
+      if ($('#ttLink')) $('#ttLink').href = cfg.tiktokUrl;
+      if ($('#waCatLink')) $('#waCatLink').href = cfg.whatsappCatalogUrl;
+
+      if ($('#mapsFrame')) $('#mapsFrame').src = cfg.mapsEmbed;
+      if ($('#addrSpan')) $('#addrSpan').textContent = cfg.direccion || '—';
+    })();
+
+    // Demo simple de "Consulta"
+    (function(){
+      const bar = document.getElementById('estadoBar');
+      const titulo = document.getElementById('estadoTitulo');
+      const sub = document.getElementById('estadoSub');
+      const btn = document.getElementById('btnConsultar');
+      const limpiar = document.getElementById('btnLimpiar');
+      function setEstado(p, texto){
+        if (bar) bar.style.width = Math.max(5, Math.min(100, p)) + '%';
+        if (titulo) titulo.textContent = 'Estado actual';
+        if (sub) sub.textContent = texto || 'En diagnóstico';
+      }
+      btn?.addEventListener('click', ()=>{
+        const estados = ['Recepción','Diagnóstico','Reparación','Calidad','Entregado'];
+        const idx = Math.floor(Math.random()*estados.length);
+        setEstado((idx+1)*20, estados[idx]);
+      });
+      limpiar?.addEventListener('click', ()=>{
+        setEstado(45, 'En diagnóstico');
+        const qP=document.getElementById('qPlaca'); if(qP) qP.value='';
+        const qO=document.getElementById('qOrden'); if(qO) qO.value='';
+      });
+    })();
+  </script>
+
+  <!-- Loader del topbar unificado -->
+  <script src="js/env.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/include-topbar.v10.js" defer></script>
+
+
+</body>
+</html>

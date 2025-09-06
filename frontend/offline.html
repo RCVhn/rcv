@@ -1,0 +1,22 @@
+<!-- offline.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sin conexión · RCV</title>
+  <link rel="stylesheet" href="estilos.css">
+  <meta name="theme-color" content="#0b6efd">
+</head>
+<body class="centered">
+  <div class="card" style="max-width:420px;text-align:center">
+    <img src="img/logo.png" alt="RCV" class="logo-card">
+    <h2>Estás sin conexión</h2>
+    <p class="muted">No pudimos cargar esta página. Intenta nuevamente cuando recuperes internet.</p>
+    <div class="actions" style="justify-content:center;margin-top:16px">
+      <button class="btn-primary" onclick="(window.__requestAppReload?.() ?? location.reload())">Reintentar</button>
+      <a class="btn-ghost" href="admin.html">Ir al inicio</a>
+    </div>
+  </div>
+</body>
+</html>

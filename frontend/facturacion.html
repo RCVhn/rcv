@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Facturación — RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row > *{flex:1 1 220px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eef2f7}
+    tfoot td{font-weight:bold}
+    .right{text-align:right}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2f7}
+    .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+
+  <script>
+    (function(){
+      try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){}
+    })();
+  </script>
+</head>
+<body>
+  <div id="topbar"></div>
+
+  <div class="wrap">
+    <h1>Facturación <span id="lblCAI" class="badge"></span></h1>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Datos del emisor</h3>
+        <div class="row">
+          <div><label>RTN</label><input id="em_rtn" type="text" placeholder="RTN Emisor"></div>
+          <div><label>Nombre/Razón social</label><input id="em_nombre" type="text" placeholder="Nombre Emisor"></div>
+          <div><label>Domicilio</label><input id="em_dom" type="text" placeholder="Domicilio Fiscal"></div>
+        </div>
+        <div class="row mini">
+          <div><label>Lugar de emisión</label><input id="lugar" type="text" value="San Pedro Sula"></div>
+          <div><label>Moneda</label><input id="moneda" type="text" value="HNL"></div>
+        </div>
+        <div class="actions">
+          <button id="btnGuardarEmisor">Guardar Emisor</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Autorización CAI</h3>
+        <div class="row">
+          <div style="flex:1 1 100%">
+            <label>Seleccionar CAI vigente</label>
+            <select id="selCAI"></select>
+          </div>
+        </div>
+        <div class="row mini">
+          <div><label>Establecimiento</label><input id="cai_est" type="text" disabled></div>
+          <div><label>Punto Emisión</label><input id="cai_pem" type="text" disabled></div>
+          <div><label>Tipo Doc</label><input id="cai_tdoc" type="text" disabled></div>
+          <div><label>Fecha Límite</label><input id="cai_lim" type="date" disabled></div>
+        </div>
+        <div class="row mini">
+          <div><label>Rango inicio</label><input id="cai_ri" type="number" disabled></div>
+          <div><label>Rango fin</label><input id="cai_rf" type="number" disabled></div>
+        </div>
+        <div class="actions">
+          <button id="btnNuevoCAI">Nuevo CAI</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h3>Cliente</h3>
+      <div class="row">
+        <div><label>Nombre/Razón social</label><input id="cl_nombre" type="text" placeholder="Cliente"></div>
+        <div><label>RTN</label><input id="cl_rtn" type="text" placeholder="RTN Cliente (opcional seg. caso)"></div>
+        <div><label>Fecha Emisión</label><input id="fecha" type="date"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Ítems</h3>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th style="width:90px">Cant</th>
+            <th style="width:120px">P.Unit</th>
+            <th style="width:120px">Desc</th>
+            <th style="width:90px">ISV%</th>
+            <th style="width:120px" class="right">Base</th>
+            <th style="width:120px" class="right">Impuesto</th>
+            <th style="width:120px" class="right">Total</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td colspan="7" class="right">Subt. Gravado</td><td class="right" id="sum_grav">0.00</td><td></td></tr>
+          <tr><td colspan="7" class="right">Subt. Exento</td><td class="right" id="sum_exen">0.00</td><td></td></tr>
+          <tr><td colspan="7" class="right">ISV 15%</td><td class="right" id="sum_15">0.00</td><td></td></tr>
+          <tr><td colspan="7" class="right">ISV 18%</td><td class="right" id="sum_18">0.00</td><td></td></tr>
+          <tr><td colspan="7" class="right">Descuento Total</td><td class="right" id="sum_desc">0.00</td><td></td></tr>
+          <tr><td colspan="7" class="right">TOTAL</td><td class="right" id="sum_total">0.00</td><td></td></tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button id="btnAdd">Agregar Ítem</button>
+        <button id="btnClear">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <button id="btnEmitir">Emitir</button>
+      </div>
+      <div id="resultado" style="margin-top:12px"></div>
+    </section>
+
+  </div>
+
+  <!-- Base del proyecto -->
+  <script src="js/global.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/panel-links.js"></script>
+    <!-- Theme (necesario para el toggle) -->
+  <script src="js/theme.js" defer></script>
+  <script src="js/topbar.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/facturacion.js"></script>
+</body>
+</html>

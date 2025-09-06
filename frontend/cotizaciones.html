@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cotizaciones</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body onload="protegerPagina()">
+  <header class="topbar">
+    <div class="brand">Servicios Mecánicos RCV</div>
+    <nav class="topnav">
+      <a href="admin.html">Panel</a>
+      <a href="clientes.html">Clientes</a>
+      <a href="cotizaciones.html">Cotizaciones</a>
+      <a href="facturacion.html">Facturación</a>
+    </nav>
+    <button id="btnLogout" class="btn-ghost">Cerrar sesión</button>
+    <button id="themeToggle" class="btn-ghost">Modo</button>
+  </header>
+
+  <main class="container container--fluid">
+    <h1>Cotizaciones</h1>
+
+    <section class="card">
+      <form id="formCot" class="layout" style="gap:12px">
+        <div class="col-form">
+          <h3>Datos del cliente</h3>
+          <label>Nombre</label><input id="cNombre" />
+          <label>Teléfono</label><input id="cTel" />
+          <label>Email</label><input id="cEmail" type="email" />
+          <label>Vehículo (opcional)</label><input id="cVehiculo" placeholder="Placa/Marca/Modelo" />
+        </div>
+
+        <div class="col-table">
+          <h3>Ítems</h3>
+
+          <!-- Filtros para el catálogo (opcional) -->
+          <div id="filtrosCatalogo" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px">
+            <div>
+              <label style="display:block;font-size:12px;color:var(--muted)">Tipo</label>
+              <select id="catTipo" style="min-width:140px">
+                <option value="servicio">Servicio</option>
+                <option value="repuesto">Repuesto</option>
+                <option value="producto">Producto</option>
+              </select>
+            </div>
+            <div id="boxSeccion">
+              <label style="display:block;font-size:12px;color:var(--muted)">Sección</label>
+              <select id="catSeccion" style="min-width:180px"></select>
+            </div>
+            <div id="boxArea" style="display:none">
+              <label style="display:block;font-size:12px;color:var(--muted)">Área del vehículo</label>
+              <select id="catArea" style="min-width:180px"></select>
+            </div>
+          </div>
+
+          <table class="tabla" id="tblItems">
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cant</th>
+                <th>Precio</th>
+                <th>Desc %</th>
+                <th>Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="actions" style="margin-top:8px">
+            <button type="button" id="agregarItem" class="btn-ghost">+ Agregar</button>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+            <div>
+              <label>ISV %</label>
+              <input id="isv" type="number" step="0.01" value="15" style="width:120px" />
+            </div>
+            <div style="flex:1 1 280px">
+              <label>Notas</label>
+              <input id="notas" placeholder="Condiciones, garantía, etc." style="min-width:280px;width:100%" />
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button id="btnPreview" class="btn-ghost" type="button">Vista previa</button>
+        <button id="btnGuardar" class="btn-primary" type="button">Guardar en backend</button>
+        <button id="btnPDF" class="btn-ghost" type="button">Exportar PDF</button>
+        <button id="btnDOC" class="btn-ghost" type="button">Exportar Word</button>
+      </div>
+    </section>
+
+    <section class="card" id="preview" style="background:#fff;color:#111;border-radius:12px;padding:16px"></section>
+  </main>
+
+  <!-- Evita id duplicado: este botón adicional no interfiere -->
+  <button id="themeToggle2" class="theme-toggle">🌓</button>
+
+  <script src="js/env.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/logout.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="js/cotizaciones.js"></script>
+</body>
+</html>

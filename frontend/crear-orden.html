@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crear Orden - Servicios Mecánicos RCV</title>
+
+  <link rel="stylesheet" href="css/estilos.css" />
+  <script>(function(){try{if(!localStorage.getItem('API_BASE'))localStorage.setItem('API_BASE','http://localhost:3001/api');}catch(e){}})();</script>
+
+  <!-- Base del proyecto -->
+  <script src="js/common.js" defer></script>
+  <script src="js/global.js" defer></script>
+  <script src="js/panel-links.js" defer></script>
+  <script src="js/topbar.js" defer></script>
+  <script src="js/toast.js" defer></script>
+  <script src="js/perms.js" defer></script>
+  <script src="js/logout.js" defer></script>
+
+  <!-- Lógica -->
+  <script src="js/crear-orden.js" defer></script>
+</head>
+<body data-page-key="ordenes">
+  <div id="topbarContainer"></div>
+
+  <main class="container container--fluid">
+    <h1>Nueva orden</h1>
+
+    <!-- Stepper -->
+    <div class="card" style="margin-bottom:12px">
+      <div id="wizardSteps" class="wizard-steps" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn step current" data-step="1" type="button">1) Datos generales</button>
+        <button class="btn step" data-step="2" type="button">2) Recepción vehículo</button>
+        <button class="btn step" data-step="3" type="button">3) Diagnóstico / Trabajos</button>
+        <button class="btn step" data-step="4" type="button">4) Costos</button>
+        <button class="btn step" data-step="5" type="button">5) Resumen</button>
+      </div>
+    </div>
+
+    <!-- STEP 1 -->
+    <section class="card step-pane" data-step="1">
+      <h2>Datos generales</h2>
+      <form class="grid-2" id="frmGeneral" novalidate>
+        <div class="field">
+          <label>Placa o vehículo *</label>
+          <input id="g_placa" placeholder="ABC123 o marca/modelo" required autocomplete="off"/>
+          <input id="g_vehiculo_id" type="hidden" />
+          <!-- contenedor de sugerencias -->
+          <div id="suggestVehiculos" class="dropdown" style="position:relative">
+            <ul id="suggestList" class="menu" style="position:absolute;z-index:20;left:0;right:0" hidden></ul>
+          </div>
+          <small class="muted">Escribe placa, marca o modelo. Selecciona de la lista.</small>
+        </div>
+        <div class="field">
+          <label>Código de cliente (0007)</label>
+          <input id="g_cli_code" placeholder="0007" />
+          <input id="g_cli_id" type="hidden" />
+        </div>
+        <div class="field">
+          <label>Estado inicial</label>
+          <select id="g_estado">
+            <option value="abierta">Abierta</option>
+            <option value="en_proceso">En proceso</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Asignar a</label>
+          <select id="g_asignado_a"></select>
+        </div>
+        <div class="field">
+          <label>Prioridad</label>
+          <select id="g_prioridad">
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fecha/Hora cita</label>
+          <input id="g_cita" type="datetime-local" />
+        </div>
+        <div class="field full">
+          <label>Descripción breve</label>
+          <textarea id="g_desc" rows="2" placeholder="Motivo de ingreso / solicitud del cliente"></textarea>
+        </div>
+      </form>
+      <div class="actions">
+        <button class="btn-primary" id="next1" type="button">Siguiente</button>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="card step-pane" data-step="2" hidden>
+      <h2>Recepción del vehículo</h2>
+      <form class="grid-2" id="frmRecepcion" novalidate>
+        <div class="field">
+          <label>Kilometraje</label>
+          <input id="r_km" type="number" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Nivel de combustible</label>
+          <select id="r_comb">
+            <option value="">Seleccione</option>
+            <option value="vacío">Vacío</option>
+            <option value="1/4">1/4</option>
+            <option value="1/2">1/2</option>
+            <option value="3/4">3/4</option>
+            <option value="lleno">Lleno</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Checklist de recepción</label>
+          <div class="grid-2">
+            <label><input type="checkbox" id="r_chk_llave" /> Recibe llaves</label>
+            <label><input type="checkbox" id="r_chk_herr" /> Sin objetos de valor</label>
+            <label><input type="checkbox" id="r_chk_gato" /> Gato y herramientas</label>
+            <label><input type="checkbox" id="r_chk_llanta" /> Llanta de repuesto</label>
+          </div>
+        </div>
+        <div class="field full">
+          <label>Observaciones</label>
+          <textarea id="r_obs" rows="2"></textarea>
+        </div>
+
+        <div class="field full">
+          <label>Fotos (opcional)</label>
+          <input id="r_fotos" type="file" multiple accept="image/*" />
+          <div id="galeriaPreview" class="grid-2" style="margin-top:8px"></div>
+          <small class="muted">Se previsualizan ahora y se suben al crear la orden.</small>
+        </div>
+      </form>
+      <div class="actions">
+        <button class="btn" id="back2" type="button">Atrás</button>
+        <button class="btn-primary" id="next2" type="button">Siguiente</button>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="card step-pane" data-step="3" hidden>
+      <h2>Diagnóstico y trabajos</h2>
+      <div class="grid-2">
+        <div class="field full">
+          <label>Diagnóstico</label>
+          <textarea id="d_diag" rows="3" placeholder="Resumen técnico"></textarea>
+        </div>
+        <div class="field full">
+          <label>Trabajos a realizar</label>
+          <textarea id="d_trab" rows="3" placeholder="Lista de trabajos propuestos"></textarea>
+        </div>
+        <div class="field full">
+          <label>Aprobación del cliente</label>
+          <select id="d_aprob">
+            <option value="pendiente">Pendiente</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="rechazado">Rechazado</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="back3" type="button">Atrás</button>
+        <button class="btn-primary" id="next3" type="button">Siguiente</button>
+      </div>
+    </section>
+
+    <!-- STEP 4 -->
+    <section class="card step-pane" data-step="4" hidden>
+      <h2>Costos</h2>
+
+      <!-- Filtros del catálogo -->
+      <div id="costFiltersHost" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px"></div>
+
+      <div class="field">
+        <button class="btn" id="addItem" type="button">+ Agregar ítem</button>
+      </div>
+
+      <div class="table-scroll">
+        <table class="tabla" id="tabItems">
+          <thead>
+            <tr>
+              <th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody><tr class="empty-row"><td colspan="6">Sin ítems</td></tr></tbody>
+        </table>
+      </div>
+      <div class="grid-2" style="margin-top:8px">
+        <div class="field">
+          <label>Mano de obra adicional</label>
+          <input id="c_mo" type="number" step="0.01" placeholder="0.00" />
+        </div>
+        <div class="field">
+          <label>Total</label>
+          <input id="c_total" type="number" step="0.01" placeholder="0.00" />
+          <small class="muted">Se recalcula desde ítems, pero puedes ajustar.</small>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="back4" type="button">Atrás</button>
+        <button class="btn-primary" id="next4" type="button">Siguiente</button>
+      </div>
+    </section>
+
+    <!-- STEP 5 -->
+    <section class="card step-pane" data-step="5" hidden>
+      <h2>Resumen</h2>
+      <div id="resumenHtml" class="muted">Revisa antes de crear.</div>
+      <div class="actions">
+        <button class="btn" id="back5" type="button">Atrás</button>
+        <button class="btn-primary" id="btnCrearOrden" type="button">Crear orden</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <script src="js/theme.js"></script>
+</body>
+</html>

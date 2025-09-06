@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reportes — RCV</title>
+
+  <link rel="stylesheet" href="css/estilos.css">
+
+  <!-- (Se elimina el script que forzaba API_BASE=localhost) -->
+
+  <script src="js/topbar.js" defer></script>
+  <script src="js/logout.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/toast.js" defer></script>
+</head>
+<body data-page-key="reportes-admin">
+  <div id="topbarContainer"></div>
+
+  <main class="container container--fluid">
+    <h1>Reportes</h1>
+
+    <!-- FILTRO MES -->
+    <section class="card">
+      <div class="toolbar">
+        <div class="field">
+          <label>Mes</label>
+          <input id="f_mes" type="month" />
+        </div>
+        <div class="actions" style="margin-left:auto">
+          <button class="btn" id="btnGenerar">Generar</button>
+        </div>
+      </div>
+      <div class="muted" id="hintMes" style="margin-top:6px">Selecciona un mes para ver ventas, gastos y utilidad.</div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="grid-3" style="gap:12px">
+      <div class="card">
+        <div class="muted">Ventas (L)</div>
+        <div id="kpiVentas" class="kpi">0.00</div>
+      </div>
+      <div class="card">
+        <div class="muted">Gastos (L)</div>
+        <div id="kpiGastos" class="kpi">0.00</div>
+      </div>
+      <div class="card">
+        <div class="muted">Utilidad (L)</div>
+        <div id="kpiUtilidad" class="kpi">0.00</div>
+      </div>
+    </section>
+
+    <!-- DETALLES -->
+    <section class="grid-2" style="gap:12px; margin-top:12px">
+      <div class="card">
+        <h3 style="margin-top:0">Ventas por día</h3>
+        <div class="table-scroll">
+          <table class="tabla" id="tblVentas">
+            <thead>
+              <tr><th>Fecha</th><th class="ta-r">Total (L)</th><th class="ta-r">ISV 15%</th><th class="ta-r">ISV 18%</th></tr>
+            </thead>
+            <tbody><tr><td colspan="4">Sin datos</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Gastos por categoría</h3>
+        <div class="table-scroll">
+          <table class="tabla" id="tblGastos">
+            <thead>
+              <tr><th>Categoría</th><th class="ta-r">Total (L)</th></tr>
+            </thead>
+            <tbody><tr><td colspan="2">Sin datos</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/reportes.js"></script>
+
+  <script>
+    (function guard() {
+      try {
+        const raw = localStorage.getItem('usuarioActual');
+        if (!raw) { localStorage.setItem('paginaDestino','reportes.html'); location.href='login.html'; }
+      } catch {}
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "id": "/rcv",
+  "name": "Servicios Mecánicos RCV",
+  "short_name": "RCV Taller",
+  "description": "Gestión de órdenes, usuarios e inventario del Taller RCV.",
+  "start_url": "/frontend/index.html?app=rcv",
+  "scope": "/frontend/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#121417",
+  "theme_color": "#1E6FB9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "frontend/img/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "frontend/img/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "frontend/img/icons/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "frontend/img/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Crear orden",
+      "short_name": "Nueva orden",
+      "url": "/frontend/crear-orden.html",
+      "icons": [
+        { "src": "frontend/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Órdenes",
+      "short_name": "Órdenes",
+      "url": "/frontend/listado-ordenes.html",
+      "icons": [
+        { "src": "frontend/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "short_name": "Usuarios",
+      "url": "/frontend/usuarios-admin.html",
+      "icons": [
+        { "src": "frontend/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "frontend/img/screenshots/wide-1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Panel de administración en escritorio"
+    },
+    {
+      "src": "frontend/img/screenshots/narrow-750x1334.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Vista móvil de órdenes"
+    }
+  ]
+}

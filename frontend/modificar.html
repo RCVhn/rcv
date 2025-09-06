@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — RCV</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+      --accent:#245C8D; --accent-2:#D72828; --ok:#22c55e; --warn:#f59e0b;
+      --radius:14px; --shadow:0 10px 30px rgba(2,6,23,.35);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a0f1a);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.8);backdrop-filter:blur(10px);padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.12)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    .card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;border:1px solid rgba(148,163,184,.12)}
+    h2,h3{margin:6px 0 10px 0}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"],input[type="url"],input[type="tel"],textarea,select{
+      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:#0b1220;color:var(--text)
+    }
+    textarea{min-height:90px}
+    .row{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:none;border-radius:10px;padding:10px 12px;background:#1f2937;color:#fff;cursor:pointer}
+    .btn.primary{background:var(--accent)}
+    .btn.ok{background:var(--ok);color:#052e16}
+    .btn.warn{background:var(--warn);color:#111}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px dashed rgba(148,163,184,.35);border-radius:10px;background:#0b1220}
+    .item.dragging{opacity:.5}
+    .small{font-size:12px;color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;background:#0b1220;border:1px solid rgba(148,163,184,.25);font-size:12px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sep{height:1px;background:rgba(148,163,184,.15);margin:10px 0}
+    footer{margin-top:20px;text-align:center;color:var(--muted);font-size:12px}
+    @media(max-width:960px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="img/logo.png" alt="RCV" style="width:40px;height:40px;border-radius:10px;background:#0b1220;object-fit:contain">
+        <strong>Panel Administrador — RCV</strong>
+        <span class="pill" id="status">Sin guardar</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnImport">Importar JSON</button>
+        <button class="btn" id="btnExport">Exportar JSON</button>
+        <button class="btn ok" id="btnSave">Guardar</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid">
+    <!-- Navegación / Secciones -->
+    <aside class="card">
+      <h3>Secciones del sitio</h3>
+      <div class="small">Arrastra para ordenar · Activa/oculta con el switch</div>
+      <div class="sep"></div>
+      <div id="sectionList" class="list"></div>
+      <div class="sep"></div>
+      <div class="small">Estas secciones controlan la distribución en <code>index.html</code>:</div>
+      <ul class="small">
+        <li>hero</li>
+        <li>servicios</li>
+        <li>consulta</li>
+        <li>testimonios</li>
+        <li>redes</li>
+        <li>galeria</li>
+        <li>contacto</li>
+        <li>mapa</li>
+      </ul>
+    </aside>
+
+    <!-- Formulario de edición -->
+    <section class="card">
+      <h2>Contenido</h2>
+
+      <div class="grid2">
+        <div>
+          <label>Título del sitio</label>
+          <input type="text" id="siteTitle" placeholder="Servicios Mecánicos RCV">
+        </div>
+        <div>
+          <label>Hero · Título</label>
+          <input type="text" id="heroTitle" placeholder="Mecánica confiable y diagnósticos claros">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Hero · Texto</label>
+          <textarea id="heroText" placeholder="Reparación, mantenimiento, electrónicos y diagnóstico profesional."></textarea>
+        </div>
+        <div>
+          <label>Hero · Imagen (URL)</label>
+          <input type="url" id="heroImage" placeholder="img/taller-frente.jpg">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>WhatsApp (con o sin + y espacios)</label>
+          <input type="tel" id="whatsappNumber" placeholder="+504 9561-5205">
+        </div>
+        <div>
+          <label>Catálogo WhatsApp (URL)</label>
+          <input type="url" id="whatsappCatalogUrl" placeholder="https://wa.me/c/50495615205">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Facebook (URL)</label>
+          <input type="url" id="facebookUrl" placeholder="https://www.facebook.com/tu-facebook">
+        </div>
+        <div>
+          <label>TikTok (URL)</label>
+          <input type="url" id="tiktokUrl" placeholder="https://www.tiktok.com/@tu-tiktok">
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>Dirección</label>
+          <input type="text" id="direccion" placeholder="Tu dirección exacta aquí">
+        </div>
+        <div>
+          <label>Teléfono</label>
+          <input type="tel" id="telefono" placeholder="+504 9561-5205">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h3>Colores del tema</h3>
+      <div class="grid2">
+        <div>
+          <label>Color primario (accent)</label>
+          <input type="text" id="colorAccent" placeholder="#245C8D">
+        </div>
+        <div>
+          <label>Color secundario (accent-2)</label>
+          <input type="text" id="colorAccent2" placeholder="#D72828">
+        </div>
+      </div>
+
+      <div class="sep"></div>
+      <h3>Testimonios</h3>
+      <div id="testiList" class="list"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="newTesti" type="text" placeholder="Añadir testimonio">
+        <button class="btn" id="btnAddTesti">Añadir</button>
+      </div>
+
+      <div class="sep"></div>
+      <h3>Galería (URLs)</h3>
+      <div id="galleryList" class="list"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="newGallery" type="url" placeholder="https://...jpg">
+        <button class="btn" id="btnAddGallery">Añadir</button>
+      </div>
+
+      <div class="sep"></div>
+      <h3>Servicios (cards)</h3>
+      <div class="small">IDs <code>w1..w12</code> coinciden con las tarjetas de servicios.</div>
+      <div id="servicesList" class="list"></div>
+      <div class="row" style="margin-top:8px">
+        <input id="newServiceId" type="text" placeholder="w13">
+        <input id="newServiceTitle" type="text" placeholder="Título del servicio">
+        <input id="newServiceCat" type="text" placeholder="mecanica / diagnostico / ...">
+      </div>
+      <div class="row" style="margin-top:6px">
+        <input id="newServiceDesc" type="text" placeholder="Descripción breve">
+        <input id="newServiceImg" type="url" placeholder="URL imagen">
+        <button class="btn" id="btnAddService">Añadir servicio</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>Los cambios se guardan en <code>localStorage.contenidoInformacion</code>. Tus páginas públicas ya lo leen automáticamente.</footer>
+
+  <input type="file" id="fileInput" accept="application/json" style="display:none" />
+
+  <script>
+    // ----- Datos y defaults -----
+    const DEF = {
+      siteTitle: 'Servicios Mecánicos RCV',
+      heroTitle: 'Mecánica confiable y diagnósticos claros',
+      heroText: 'Reparación, mantenimiento, electrónicos y diagnóstico profesional. Agenda en línea o consúltanos por WhatsApp.',
+      heroImage: 'img/taller-frente.jpg',
+      facebookUrl: 'https://www.facebook.com/tu-facebook',
+      tiktokUrl: 'https://www.tiktok.com/@tu-tiktok',
+      whatsappNumber: '+504 9561-5205',
+      whatsappCatalogUrl: 'https://wa.me/c/50495615205',
+      direccion: 'Tu dirección exacta aquí',
+      telefono: '+504 9561-5205',
+      mapsEmbed: 'https://www.google.com/maps?q=Servicios+Mec%C3%A1nicos+RCV&output=embed',
+      theme: { accent:'#245C8D', accent2:'#D72828' },
+      // Orden/visibilidad de secciones en index.html
+      sections: [
+        { id:'hero', label:'Hero', visible:true },
+        { id:'servicios', label:'Servicios', visible:true },
+        { id:'consulta', label:'Consulta de estado', visible:true },
+        { id:'testimonios', label:'Testimonios', visible:true },
+        { id:'redes', label:'Redes', visible:true },
+        { id:'galeria', label:'Galería', visible:true },
+        { id:'contacto', label:'Contacto', visible:true },
+        { id:'mapa', label:'Mapa', visible:true },
+      ],
+      // Testimonios
+      testimonios: [
+        'Servicio honesto y profesional.',
+        'Me explicaron el diagnóstico con claridad.',
+        'Excelente atención y rapidez.'
+      ],
+      // Galería
+      gallery: [ 'img/galeria-1.jpg','img/galeria-2.jpg','img/galeria-3.jpg' ],
+      // Servicios (cards) – id, título, cat, desc, img
+      services: [
+        { id:'w1', title:'Frenos y suspensión', cat:'mecanica', desc:'Pastillas, discos, amortiguadores y bujes.', img:'img/services/frenos-susp.jpg' },
+        { id:'w2', title:'Sistema de refrigeración', cat:'mecanica', desc:'Radiador, bomba de agua, termostato y fugas.', img:'img/services/refrigeracion.jpg' },
+        { id:'w3', title:'Cambio de aceite y filtros', cat:'mecanica mantenimiento', desc:'Lubricante recomendado y control de niveles.', img:'img/services/aceite-filtros.jpg' },
+        { id:'w4', title:'Diagnóstico OBD-II', cat:'diagnostico', desc:'Códigos, datos en vivo e interpretación.', img:'img/services/obd2.jpg' },
+      ]
+    };
+
+    // Estado en memoria
+    let data = loadData();
+    const $ = (s)=>document.querySelector(s);
+    const statusEl = $('#status');
+
+    function loadData(){
+      try{
+        const raw = localStorage.getItem('contenidoInformacion');
+        if(!raw) return JSON.parse(JSON.stringify(DEF));
+        return Object.assign({}, DEF, JSON.parse(raw));
+      }catch(e){
+        console.warn('No se pudo leer contenidoInformacion:', e);
+        return JSON.parse(JSON.stringify(DEF));
+      }
+    }
+
+    function saveData(){
+      localStorage.setItem('contenidoInformacion', JSON.stringify(data));
+      setStatus('Guardado', 'ok');
+    }
+
+    function setStatus(text, mode){
+      statusEl.textContent = text;
+      statusEl.style.background = mode==='ok' ? 'rgba(34,197,94,.15)' : mode==='warn' ? 'rgba(245,158,11,.15)' : '#0b1220';
+      statusEl.style.border = '1px solid rgba(148,163,184,.25)';
+    }
+
+    // ----- Pintar UI -----
+    function render(){
+      // Campos simples
+      $('#siteTitle').value = data.siteTitle || '';
+      $('#heroTitle').value = data.heroTitle || '';
+      $('#heroText').value = data.heroText || '';
+      $('#heroImage').value = data.heroImage || '';
+      $('#facebookUrl').value = data.facebookUrl || '';
+      $('#tiktokUrl').value = data.tiktokUrl || '';
+      $('#whatsappNumber').value = data.whatsappNumber || '';
+      $('#whatsappCatalogUrl').value = data.whatsappCatalogUrl || '';
+      $('#direccion').value = data.direccion || '';
+      $('#telefono').value = data.telefono || '';
+      $('#colorAccent').value = (data.theme?.accent) || DEF.theme.accent;
+      $('#colorAccent2').value = (data.theme?.accent2) || DEF.theme.accent2;
+
+      // Secciones
+      const list = $('#sectionList'); list.innerHTML = '';
+      (data.sections || []).forEach(sec=>{
+        const el = document.createElement('div');
+        el.className = 'item'; el.draggable = true; el.dataset.id = sec.id;
+        el.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="pill" style="cursor:grab" title="Arrastrar">↕</span>
+            <strong>${sec.label}</strong>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px">
+            <span class="small">Visible</span>
+            <input type="checkbox" ${sec.visible?'checked':''} />
+          </label>
+        `;
+        el.querySelector('input').addEventListener('change', (e)=>{
+          sec.visible = !!e.target.checked; setStatus('Sin guardar','warn');
+        });
+        // Drag & drop
+        el.addEventListener('dragstart', ()=>{ el.classList.add('dragging'); });
+        el.addEventListener('dragend', ()=>{
+          el.classList.remove('dragging');
+          const order = Array.from(list.children).map(x=>x.dataset.id);
+          data.sections.sort((a,b)=> order.indexOf(a.id) - order.indexOf(b.id));
+          setStatus('Sin guardar','warn');
+        });
+        list.appendChild(el);
+      });
+      // zona drop
+      list.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        const dragging = list.querySelector('.dragging');
+        const after = Array.from(list.querySelectorAll('.item:not(.dragging)')).find(item=>{
+          const box = item.getBoundingClientRect();
+          return e.clientY <= box.top + box.height/2;
+        });
+        if(!after) list.appendChild(dragging); else list.insertBefore(dragging, after);
+      });
+
+      // Testimonios
+      const tl = $('#testiList'); tl.innerHTML = '';
+      (data.testimonios||[]).forEach((t,i)=>{
+        const row = document.createElement('div'); row.className = 'item';
+        row.innerHTML = `
+          <div style="flex:1">${t}</div>
+          <div class="row">
+            <button class="btn" data-act="up">↑</button>
+            <button class="btn" data-act="down">↓</button>
+            <button class="btn warn" data-act="del">Eliminar</button>
+          </div>`;
+        row.querySelector('[data-act="up"]').onclick=()=>{ if(i>0){ swap(data.testimonios,i,i-1); render(); setStatus('Sin guardar','warn'); }};
+        row.querySelector('[data-act="down"]').onclick=()=>{ if(i<data.testimonios.length-1){ swap(data.testimonios,i,i+1); render(); setStatus('Sin guardar','warn'); }};
+        row.querySelector('[data-act="del"]').onclick=()=>{ data.testimonios.splice(i,1); render(); setStatus('Sin guardar','warn'); };
+        tl.appendChild(row);
+      });
+
+      // Galería
+      const gl = $('#galleryList'); gl.innerHTML = '';
+      (data.gallery||[]).forEach((url,i)=>{
+        const row = document.createElement('div'); row.className = 'item';
+        row.innerHTML = `
+          <input type="url" value="${url}">
+          <div class="row">
+            <button class="btn" data-act="up">↑</button>
+            <button class="btn" data-act="down">↓</button>
+            <button class="btn warn" data-act="del">Eliminar</button>
+          </div>`;
+        const inp = row.querySelector('input'); inp.oninput=()=>{ data.gallery[i] = inp.value; setStatus('Sin guardar','warn'); };
+        row.querySelector('[data-act="up"]').onclick=()=>{ if(i>0){ swap(data.gallery,i,i-1); render(); setStatus('Sin guardar','warn'); }};
+        row.querySelector('[data-act="down"]').onclick=()=>{ if(i<data.gallery.length-1){ swap(data.gallery,i,i+1); render(); setStatus('Sin guardar','warn'); }};
+        row.querySelector('[data-act="del"]').onclick=()=>{ data.gallery.splice(i,1); render(); setStatus('Sin guardar','warn'); };
+        gl.appendChild(row);
+      });
+
+      // Services
+      const sl = $('#servicesList'); sl.innerHTML = '';
+      (data.services||[]).forEach((s,idx)=>{
+        const row = document.createElement('div'); row.className = 'item';
+        row.innerHTML = `
+          <div class="row" style="flex:1">
+            <input style="max-width:80px" type="text" value="${s.id}" title="ID (w1..w12)">
+            <input style="flex:1" type="text" value="${s.title}" title="Título">
+            <input style="max-width:220px" type="text" value="${s.cat}" title="Categoría(s)">
+          </div>
+        `;
+        const b = document.createElement('div'); b.className='row';
+        const d = document.createElement('div'); d.style.display='grid'; d.style.gridTemplateColumns='1fr'; d.style.gap='6px';
+        const desc = el('input',{type:'text', value:s.desc, title:'Descripción', style:'min-width:240px'});
+        const img = el('input',{type:'url', value:s.img||'', title:'Imagen (URL)', style:'min-width:240px'});
+        const del = el('button',{class:'btn warn', innerText:'Eliminar'});
+        del.onclick=()=>{ data.services.splice(idx,1); render(); setStatus('Sin guardar','warn'); };
+        desc.oninput=()=>{ s.desc = desc.value; setStatus('Sin guardar','warn'); };
+        img.oninput=()=>{ s.img = img.value; setStatus('Sin guardar','warn'); };
+        // bind top row inputs
+        const inputs = row.querySelectorAll('input');
+        inputs[0].oninput=()=>{ s.id = inputs[0].value; setStatus('Sin guardar','warn'); };
+        inputs[1].oninput=()=>{ s.title = inputs[1].value; setStatus('Sin guardar','warn'); };
+        inputs[2].oninput=()=>{ s.cat = inputs[2].value; setStatus('Sin guardar','warn'); };
+        d.append(desc,img,del); b.appendChild(d); row.appendChild(b); sl.appendChild(row);
+      });
+    }
+
+    function el(tag, attrs){
+      const e = document.createElement(tag);
+      Object.entries(attrs||{}).forEach(([k,v])=>{
+        if(k==='innerText') e.innerText = v;
+        else if(k==='style') e.setAttribute('style', v);
+        else e[k]=v;
+      });
+      return e;
+    }
+
+    function swap(arr,i,j){ const t = arr[i]; arr[i]=arr[j]; arr[j]=t; }
+
+    // ----- Eventos -----
+    const bind = (id, path)=>{
+      $(id).addEventListener('input', (e)=>{
+        // path como "theme.accent" o "heroTitle"
+        const keys = path.split('.');
+        let ref = data;
+        for(let k=0; k<keys.length-1; k++){ if(!ref[keys[k]]) ref[keys[k]]={}; ref = ref[keys[k]]; }
+        ref[keys.at(-1)] = e.target.value;
+        setStatus('Sin guardar','warn');
+      });
+    };
+
+    bind('#siteTitle','siteTitle');
+    bind('#heroTitle','heroTitle');
+    bind('#heroText','heroText');
+    bind('#heroImage','heroImage');
+    bind('#facebookUrl','facebookUrl');
+    bind('#tiktokUrl','tiktokUrl');
+    bind('#whatsappNumber','whatsappNumber');
+    bind('#whatsappCatalogUrl','whatsappCatalogUrl');
+    bind('#direccion','direccion');
+    bind('#telefono','telefono');
+    bind('#colorAccent','theme.accent');
+    bind('#colorAccent2','theme.accent2');
+
+    // Añadir testimonio
+    $('#btnAddTesti').onclick = ()=>{
+      const t = $('#newTesti').value.trim(); if(!t) return;
+      data.testimonios = data.testimonios||[]; data.testimonios.push(t);
+      $('#newTesti').value=''; render(); setStatus('Sin guardar','warn');
+    };
+
+    // Añadir galería
+    $('#btnAddGallery').onclick = ()=>{
+      const u = $('#newGallery').value.trim(); if(!u) return;
+      data.gallery = data.gallery||[]; data.gallery.push(u);
+      $('#newGallery').value=''; render(); setStatus('Sin guardar','warn');
+    };
+
+    // Añadir servicio
+    $('#btnAddService').onclick = ()=>{
+      const id = $('#newServiceId').value.trim() || ('w'+(data.services.length+1));
+      const title = $('#newServiceTitle').value.trim() || 'Servicio';
+      const cat = $('#newServiceCat').value.trim() || 'mecanica';
+      const desc = $('#newServiceDesc').value.trim() || '';
+      const img = $('#newServiceImg').value.trim() || '';
+      data.services.push({id,title,cat,desc,img});
+      $('#newServiceId').value=''; $('#newServiceTitle').value='';
+      $('#newServiceCat').value=''; $('#newServiceDesc').value='';
+      $('#newServiceImg').value='';
+      render(); setStatus('Sin guardar','warn');
+    };
+
+    // Guardar / Importar / Exportar
+    $('#btnSave').onclick = saveData;
+
+    $('#btnExport').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'contenidoInformacion.json';
+      a.click();
+    };
+
+    $('#btnImport').onclick = ()=> $('#fileInput').click();
+    $('#fileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const json = JSON.parse(reader.result);
+          data = Object.assign({}, DEF, json);
+          render(); setStatus('Sin guardar','warn');
+        }catch(err){ alert('JSON inválido'); }
+      };
+      reader.readAsText(file);
+    });
+
+    // Inicializar
+    render(); setStatus('Listo','ok');
+  </script>
+</body>
+</html>

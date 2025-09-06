@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Clientes - Servicios Mecánicos RCV</title>
+
+  <link rel="stylesheet" href="css/estilos.css" />
+
+  <!-- Fija API_BASE si no existe -->
+  <script>
+    (function(){
+      try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){}
+    })();
+  </script>
+
+  <!-- Base del proyecto -->
+  <script src="js/common.js" defer></script>
+  <script src="js/global.js" defer></script>
+  <script src="js/panel-links.js" defer></script>
+  <script src="js/topbar.js" defer></script>
+  <script src="js/toast.js" defer></script>
+  <script src="js/perms.js" defer></script>
+  <script src="js/logout.js" defer></script>
+
+  <!-- Lógica de página -->
+  <script src="js/clientes.js" defer></script>
+</head>
+<body data-page-key="clientes">
+  <div id="topbarContainer"></div>
+
+  <main class="container container--fluid">
+
+    <h1>Gestión de clientes</h1>
+
+    <div class="layout">
+      <!-- FORM: Crear/Editar -->
+      <section class="card col-form" data-page-key="clientes">
+        <h2 id="formTitle">Nuevo cliente</h2>
+        <form id="formCliente" novalidate class="perm-add grid-2">
+          <input type="hidden" id="c_id" name="id" />
+
+          <div class="field full">
+            <label for="c_nombre">Nombre *</label>
+            <input id="c_nombre" name="nombre" type="text" required placeholder="Nombre completo / Razón social" />
+          </div>
+
+          <div class="field full">
+            <label for="c_documento">Documento</label>
+            <input id="c_documento" name="documento" type="text" placeholder="DNI/RTN/NIT" />
+          </div>
+
+          <div class="field half">
+            <label for="c_telefono">Teléfono</label>
+            <input id="c_telefono" name="telefono" type="tel" placeholder="+504 ..." />
+          </div>
+
+          <div class="field half">
+            <label for="c_email">Email</label>
+            <input id="c_email" name="email" type="email" placeholder="correo@ejemplo.com" />
+          </div>
+
+          <div class="field full">
+            <label for="c_direccion">Dirección</label>
+            <input id="c_direccion" name="direccion" type="text" placeholder="Calle, número, ciudad" />
+          </div>
+
+          <div class="field full">
+            <label for="c_notas">Notas</label>
+            <textarea id="c_notas" name="notas" rows="2" placeholder="Observaciones (opcional)"></textarea>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn-primary" id="btnGuardarCliente">Guardar</button>
+            <button type="button" class="btn" id="btnCancelarEdicion">Cancelar</button>
+          </div>
+
+          <div id="msgFormCliente" class="error"></div>
+          <p class="muted full">Campos marcados con * son obligatorios.</p>
+        </form>
+      </section>
+
+      <!-- TABLA -->
+      <section class="card col-table">
+        <div class="card-header">
+          <h2>Clientes</h2>
+          <div class="toolbar">
+            <span id="countClientes" class="muted">Clientes (0)</span>
+            <input id="buscarCliente" placeholder="Buscar por nombre, documento, teléfono o email…" />
+            <button id="btnBuscar" class="btn-ghost" type="button">Buscar</button>
+            <button id="btnRefrescar" class="btn-ghost" type="button">Refrescar</button>
+            <button id="btnExportClientes" class="btn-ghost" type="button">Imprimir/Exportar</button>
+            <button id="btnExportClientesCsv" class="btn-ghost" type="button">Exportar CSV</button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="tabla" id="tablaClientes">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th style="width:90px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="skel-row"><td colspan="4">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="paginador-clientes" class="paginator"></div>
+      </section>
+    </div>
+
+    <!-- DETALLE -->
+    <section class="card">
+      <h2>Detalle</h2>
+      <div id="detalleCliente" class="muted">Selecciona un cliente…</div>
+    </section>
+  </main>
+
+  <!-- === DRAWER (misma forma y rutas que usuarios-admin) === -->
+  <div id="drawerOverlay" class="drawer-overlay" hidden></div>
+  <aside id="drawerEditar" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <strong id="drawerTitulo" class="drawer-title">Editar cliente</strong>
+      <button class="drawer-close btn-ghost" id="btnCerrarDrawer" aria-label="Cerrar panel">Cerrar</button>
+    </div>
+
+    <div class="drawer-body">
+      <form id="formEditar" novalidate>
+        <div class="field full">
+          <label>Nombre</label>
+          <input id="ed_nombre" type="text" />
+        </div>
+        <div class="field full">
+          <label>Documento</label>
+          <input id="ed_documento" type="text" />
+        </div>
+        <div class="field full">
+          <label>Teléfono</label>
+          <input id="ed_telefono" type="tel" />
+        </div>
+        <div class="field full">
+          <label>Email</label>
+          <input id="ed_email" type="email" />
+        </div>
+        <div class="field full">
+          <label>Dirección</label>
+          <input id="ed_direccion" type="text" />
+        </div>
+        <div class="field full">
+          <label>Notas</label>
+          <textarea id="ed_notas" rows="3"></textarea>
+        </div>
+
+        <div class="actions" style="margin-top:12px">
+          <button id="btnGuardarEditar" type="button" class="btn-primary">Guardar cambios</button>
+          <button id="btnCancelarEditar" type="button" class="btn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </aside>
+
+  <!-- DIALOG (con Imprimir/PDF/Cerrar) -->
+  <dialog id="dlgCliente" style="width:min(860px,96vw);border:none;border-radius:12px;padding:0;box-shadow:var(--shadow)">
+    <div class="card" style="margin:0;border:none;box-shadow:none">
+      <div class="card-header">
+        <h2 id="dlgClienteTitulo" style="margin:0">Cliente</h2>
+        <div class="toolbar">
+          <button id="btnDlgPrint" class="btn-ghost" type="button">Imprimir</button>
+          <button id="btnDlgPdf" class="btn-ghost" type="button">Guardar PDF</button>
+          <button id="btnCerrarDlgCliente" class="btn-ghost" type="button">Cerrar</button>
+        </div>
+      </div>
+      <div id="dlgClienteBody" style="max-height:65vh;overflow:auto;padding:8px 12px 16px 12px"></div>
+    </div>
+  </dialog>
+
+  <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <script src="js/theme.js"></script>
+</body>
+</html>

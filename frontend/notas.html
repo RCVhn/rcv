@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Notas (NC/ND) — RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+  <link rel="stylesheet" href="css/topbar.css" />
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{flex:1 1 220px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eef2f7}
+    .right{text-align:right}
+    .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  </style>
+  <script>
+    (function(){
+      try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){}
+    })();
+  </script>
+</head>
+<body>
+  <div id="topbar"></div>
+  <div class="wrap">
+    <h1 id="title">Nota</h1>
+
+    <div class="grid">
+      <section class="card">
+        <h3>Referencia (Documento original)</h3>
+        <div class="row">
+          <div><label>Tipo ref</label><input id="ref_tipo" type="text" disabled></div>
+          <div><label>Correlativo ref</label><input id="ref_corr" type="text" disabled></div>
+          <div><label>Fecha ref</label><input id="ref_fecha" type="date" disabled></div>
+          <div><label>CAI ref</label><input id="ref_cai" type="text" disabled></div>
+        </div>
+        <div class="row">
+          <div style="flex:1 1 100%"><label>Motivo</label><input id="ref_motivo" type="text" placeholder="Motivo de la nota"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>CAI de la Nota</h3>
+        <div class="row">
+          <div style="flex:1 1 100%">
+            <label>Seleccionar CAI (NC/ND)</label>
+            <select id="selCAI"></select>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h3>Ítems de la Nota</h3>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Descripción</th>
+            <th style="width:90px">Cant</th>
+            <th style="width:120px">P.Unit</th>
+            <th style="width:120px">Desc</th>
+            <th style="width:90px">ISV%</th>
+            <th style="width:120px" class="right">Base</th>
+            <th style="width:120px" class="right">Impuesto</th>
+            <th style="width:120px" class="right">Total</th>
+            <th style="width:40px"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td colspan="7" class="right">TOTAL</td><td class="right" id="sum_total">0.00</td><td></td></tr>
+        </tfoot>
+      </table>
+      <div class="actions">
+        <button id="btnAdd">Agregar Ítem</button>
+        <button id="btnClear">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <button id="btnEmitir">Emitir Nota</button>
+        <a href="documentos.html"><button type="button">Volver</button></a>
+      </div>
+      <div id="resultado" style="margin-top:12px"></div>
+    </section>
+  </div>
+
+  <!-- Base -->
+  <script src="js/global.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/panel-links.js"></script>
+  <script src="js/topbar.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/notas.js"></script>
+</body>
+</html>

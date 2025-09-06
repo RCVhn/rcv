@@ -1,0 +1,47 @@
+<!-- topbar.html -->
+<div class="topbar">
+  <div class="tb-wrap">
+    <!-- Izquierda: burger + logo + marca -->
+    <div class="topbar-left">
+      <button class="tb-burger" id="tbBurger" aria-label="Abrir menú" aria-controls="topnav" aria-expanded="false">☰</button>
+      <img src="img/logo.png" alt="Logo" class="logo-topbar">
+      <div class="brand-container">
+        <span class="brand">Servicios Mecánicos RCV</span>
+        <div class="user-info-topbar">
+          <span id="nombreUsuarioTopbar"></span> - <span id="rolUsuarioTopbar"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Centro: navegación -->
+    <nav class="topnav" id="topnav">
+      <a id="navAdmin"           href="admin.html"           data-page-key="admin">Inicio</a>
+      <a id="navCrearOrden"      href="crear-orden.html"     data-page-key="crear-orden">Crear orden</a>
+      <a id="navGestionOrdenes"  href="gestion-ordenes.html" data-page-key="gestion-ordenes">Gestion órdenes</a>
+      <a id="navUsuarios"        href="usuarios-admin.html"  data-page-key="usuarios">Usuarios</a>
+      <a id="navClientes"        href="clientes.html"        data-page-key="clientes">Clientes</a>
+      <a id="navVehiculos"       href="vehiculos.html"       data-page-key="vehiculos">Vehículos</a>
+      <a id="navCotizaciones"    href="cotizaciones.html"    data-page-key="cotizaciones">Cotizaciones</a>
+      <a id="navFacturacion"     href="facturacion.html"     data-page-key="facturacion">Facturación</a>
+      <a id="navInventario"      href="inventario.html"      data-page-key="inventario">Inventario</a>
+      <a id="navReportes"        href="reportes.html"        data-page-key="inventario">Reportes</a>
+      <a id="navGastos"          href="gastos.html"          data-page-key="inventario">Gastos</a>
+      <a id="navKardex"          href="Kardex.html"          data-page-key="inventario">Kardex</a>
+
+
+      <!-- Enlaces solo para administradores -->
+      <a id="linkEditorPaginas"   href="paginas-admin.html"   data-admin-only>Editor de páginas</a>
+      <a id="linkCatalogo" href="catalogo.html" data-admin-only>Catálogo</a>
+      <a id="linkDocumentos" href="documentos.html" data-admin-only>Documentos</a>
+    </nav>
+
+    <!-- Derecha: cerrar sesión + modo -->
+    <div class="topbar-right">
+      <button id="btnLogout" class="btn-ghost">Cerrar sesión</button>
+      <button id="btnThemeToggle" class="btn-ghost" title="Cambiar tema">
+        <span id="themeIcon" aria-hidden="true">🌙</span>
+        <span class="sr-only">Cambiar tema</span>
+      </button>
+    </div>
+  </div>
+</div>

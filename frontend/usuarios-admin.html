@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b6efd">
+
+  <!-- iOS (Safari) -->
+  <link rel="apple-touch-icon" href="img/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <title>Usuarios - Servicios Mecánicos RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+
+  <!-- Topbar cargado externamente -->
+  <div id="topbarContainer"></div>
+
+  <main class="container container--fluid">
+    <h1>Gestión de usuarios</h1>
+
+    <div class="layout">
+      <!-- COLUMNA FORM CREAR (izquierda) -->
+      <section class="card col-form" data-page-key="usuarios"><!-- <- ayuda a detección de página para permisos -->
+        <h2 style="margin-top:0">Crear usuario</h2>
+        <form id="formCrear" novalidate>
+          <label for="usuario">Usuario</label>
+          <input type="text" id="usuario" required placeholder="ej: jgarcia" />
+
+          <label for="nombre">Nombre completo</label>
+          <input type="text" id="nombre" required placeholder="ej: Juan García" />
+
+          <label for="rol">Rol</label>
+          <select id="rol">
+            <option value="administrador">Administrador</option>
+            <option value="mecanico">Mecánico</option>
+            <option value="recepcion">Recepción</option>
+            <option value="gerencia">Gerencia</option>
+            <option value="calidad">Control de Calidad</option>
+            <option value="bodega">Bodega / Repuestos</option>
+          </select>
+
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" placeholder="Mín. 8, Aa1 y símbolo" />
+
+          <div class="actions" style="margin-top:8px">
+            <input type="checkbox" id="forzarCambio" checked />
+            <label for="forzarCambio">Forzar cambio al primer inicio</label>
+          </div>
+
+          <div class="actions" style="margin-top:12px">
+            <button type="submit" class="btn-primary">Guardar</button>
+          </div>
+
+          <p class="muted" style="margin-top:8px">
+            Requisito contraseña: mínimo 8 caracteres, incluir mayúscula, minúscula, número y símbolo.
+          </p>
+          <!-- aria-live para que los toasts/mensajes se anuncien a lectores -->
+          <div id="msgFormCrear" class="error" style="color:red" aria-live="polite"></div>
+        </form>
+      </section>
+
+      <!-- COLUMNA TABLA (derecha) -->
+      <section class="card col-table">
+        <div class="card-header">
+          <h2>Usuarios</h2>
+          <div class="toolbar">
+            <!-- AÑADIDO: contador (si no existiera, el JS lo crea igual) -->
+            <span id="countUsuarios" class="muted" style="margin-right:8px">Usuarios (0)</span>
+            <!-- Los filtros de Rol/Estado se inyectan aquí por JS si no existen -->
+            <input id="buscarUsuario" placeholder="Buscar usuario o nombre..." />
+            <button id="btnRefrescar" class="btn-ghost">Refrescar</button>
+            <button id="btnExportUsuarios" class="btn-ghost">Imprimir/Exportar usuarios</button>
+            <button id="btnExportUsuariosCsv" class="btn-ghost">Exportar CSV</button>
+          </div>
+        </div>
+
+        <table class="tabla" id="tablaUsuarios" style="margin-top:8px">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Último acceso</th>
+              <th style="width:60px">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <!-- (opcional) El paginador se inyecta aquí por JS -->
+        <!-- <div id="paginador-usuarios" class="paginator"></div> -->
+      </section>
+    </div>
+
+    <!-- BITÁCORA -->
+    <section class="card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <h2 style="margin:0">Bitácora de usuarios</h2>
+        <div class="actions">
+          <button id="btnExportBitacora" class="btn-ghost">Imprimir/Exportar bitácora</button>
+          <button id="btnExportBitacoraCsv" class="btn-ghost">Exportar CSV</button>
+        </div>
+      </div>
+      <!-- Los filtros de bitácora se inyectan por JS encima de esta tabla -->
+      <table class="tabla" id="tablaBitacora" style="margin-top:8px">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Acción</th>
+            <th>Usuario afectado</th>
+            <th>Hecha por</th>
+            <th>Detalles</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <!-- (opcional) El paginador se inyecta aquí por JS -->
+      <!-- <div id="paginador-bitacora" class="paginator"></div> -->
+    </section>
+  </main>
+
+  <!-- === OVERLAY (global) para el drawer === -->
+  <div id="drawerOverlay" class="drawer-overlay" hidden></div>
+
+  <!-- DRAWER EDICIÓN (usa estilos globales) -->
+     <aside id="drawerEditar" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <strong id="drawerTitulo" class="drawer-title">Editar usuario</strong>
+      <button class="drawer-close btn-ghost" id="btnCerrarDrawer" aria-label="Cerrar panel">Cerrar</button>
+    </div>
+    <div class="drawer-body">
+      <form id="formEditar" novalidate>
+        <input type="hidden" id="editId" />
+        <label>Usuario</label>
+        <input type="text" id="editUsuario" disabled />
+
+        <label>Nombre completo</label>
+        <input type="text" id="editNombre" required />
+
+        <label>Rol</label>
+        <select id="editRol">
+          <option value="administrador">Administrador</option>
+          <option value="mecanico">Mecánico</option>
+          <option value="recepcion">Recepción</option>
+          <option value="gerencia">Gerencia</option>
+          <option value="calidad">Control de Calidad</option>
+          <option value="bodega">Bodega / Repuestos</option>
+        </select>
+
+        <label>Nueva contraseña (opcional)</label>
+        <input type="password" id="editPassword" placeholder="Dejar vacío para no cambiar" />
+
+        <div class="actions" style="margin-top:8px">
+          <input type="checkbox" id="editForzarCambio" />
+          <label for="editForzarCambio">Forzar cambio al próximo inicio</label>
+        </div>
+
+        <div class="actions" style="margin-top:12px">
+          <button type="submit" class="btn-primary">Guardar cambios</button>
+          <button type="button" class="btn-ghost" id="btnCancelarEdit">Cancelar</button>
+        </div>
+        <div id="msgFormEditar" class="error" style="color:red" aria-live="polite"></div>
+      </form>
+    </div>
+  </aside>
+
+  <!-- MODAL: Bitácora por usuario -->
+  <dialog id="dlgBitacoraUsuario" style="width:min(820px,96vw);border:none;border-radius:12px;padding:0;box-shadow:var(--shadow)">
+    <div class="card" style="margin:0;border:none;box-shadow:none">
+      <div class="card-header">
+        <h2 id="dlgTituloBitacora" style="margin:0">Bitácora del usuario</h2>
+        <div class="toolbar"><button id="btnCerrarDlgBit" class="btn-ghost">Cerrar</button></div>
+      </div>
+      <div style="max-height:60vh;overflow:auto;padding:0 8px 8px 8px">
+        <table class="tabla">
+          <thead>
+            <tr><th>Fecha</th><th>Acción</th><th>Hecha por</th><th>Detalles</th></tr>
+          </thead>
+          <tbody id="tbodyBitUsuario"></tbody>
+        </table>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Contenedor de toasts (fallback; si ya tienes uno, este queda sin uso) -->
+  <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Scripts (los mismos de tu proyecto) -->
+  <!-- ✅ AÑADIDO: fija API_BASE si no existe para apuntar al backend en 3001 -->
+  <!-- Limpieza: si quedó guardado localhost en API_BASE y estamos en GitHub Pages, lo borramos -->
+<script>
+  (function(){
+    if (location.hostname.endsWith('.github.io')) {
+      var v = localStorage.getItem('API_BASE') || '';
+      if (/localhost|127\.0\.0\.1/.test(v)) localStorage.removeItem('API_BASE');
+    }
+  })();
+</script>
+
+<!-- 1) Debe ir SIEMPRE primero -->
+<script src="js/env.js"></script>
+
+<!-- 2) API antes de módulos que la usen -->
+<script src="js/api.js"></script>
+
+<!-- 3) Resto de módulos comunes -->
+<script src="js/common.js"></script>
+<script src="js/global.js"></script>
+<script src="js/panel-links.js"></script>
+<script src="js/topbar.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/perms.js"></script>
+<script src="js/logout.js"></script>
+
+<!-- 4) Script específico de la página, al final -->
+<script src="js/usuarios-admin.js"></script>
+
+
+  <!-- 🔄 Live sync de permisos (no invade usuarios-admin.js) -->
+  <script>
+    (function(){
+      if (window.LivePermSync) return;
+      window.LivePermSync = true;
+
+      function canStay(u){
+        const rol = String((u && u.rol) || '').toLowerCase();
+        const perms = Array.isArray(u && u.permisos) ? u.permisos : [];
+        return rol === 'administrador' || perms.includes('usuarios:admin');
+      }
+      function readUser(){
+        try { return JSON.parse(localStorage.getItem('usuarioActual')) || {}; }
+        catch { return {}; }
+      }
+      function closeOverlays(){
+        const dr = document.getElementById('drawerEditar');
+        if (dr){ dr.classList.remove('open'); dr.setAttribute('aria-hidden','true'); }
+        const mp = document.getElementById('modalPerms');
+        if (mp){ mp.classList.remove('open'); }
+        const dlg = document.getElementById('dlgBitacoraUsuario');
+        if (dlg && typeof dlg.close==='function') dlg.close();
+      }
+      function enforceAccess(){
+        const u = readUser();
+        if (!canStay(u)) {
+          if (typeof window.showToast==='function') window.showToast('warning','Tu permiso para "Usuarios" fue revocado. Redirigiendo…');
+          else if (typeof window.mostrarToast==='function') window.mostrarToast('warning','Tu permiso para "Usuarios" fue revocado. Redirigiendo…');
+          closeOverlays();
+          setTimeout(()=>{ location.href='admin.html'; }, 800);
+        }
+      }
+
+      window.addEventListener('storage', function(ev){
+        if (ev.key === 'usuarioActual') enforceAccess();
+      });
+
+      async function refreshFromServer(){
+        try{
+          const ok = window.API && window.API.AuthAPI && typeof window.API.AuthAPI.verify === 'function';
+          if (!ok) return;
+          const res = await window.API.AuthAPI.verify();
+          const u = res && (res.usuario || ((res.rol || res.permisos) ? res : null));
+          if (!u) return;
+
+          const saved = readUser();
+          const a = JSON.stringify({ rol: saved.rol, permisos: saved.permisos || [] });
+          const b = JSON.stringify({ rol: u.rol, permisos: u.permisos || [] });
+          if (a !== b) {
+            const merged = { ...saved, ...u };
+            localStorage.setItem('usuarioActual', JSON.stringify(merged));
+            if (typeof window.showToast==='function') window.showToast('info','Permisos actualizados.');
+            else if (typeof window.mostrarToast==='function') window.mostrarToast('info','Permisos actualizados.');
+            enforceAccess();
+          }
+        }catch(_e){}
+      }
+
+      const POLL_MS = 15000;
+      setInterval(refreshFromServer, POLL_MS);
+      enforceAccess();
+      refreshFromServer();
+    })();
+  </script>
+
+  <!-- Mini-script modal bitácora por usuario -->
+  <script>
+    (function(){
+      const dlg=document.getElementById('dlgBitacoraUsuario');
+      const tbody=document.getElementById('tbodyBitUsuario');
+      const titulo=document.getElementById('dlgTituloBitacora');
+      const btnClose=document.getElementById('btnCerrarDlgBit');
+      function fmt(d){try{return new Date(d).toLocaleString()}catch(_){return d||'-'}}
+      window.accionVerBitacora=function(id){
+        if(!dlg||!tbody||!titulo||!window.getBitacora||!window.getUsuarios){return alert('Bitácora no disponible')}
+        const usuarios=getUsuarios();const u=usuarios.find(x=>x.id===id);
+        const bit=getBitacora().filter(b=>(b.usuarioAfectado||'').toLowerCase()===(u?.usuario||'').toLowerCase());
+        titulo.textContent=u?`Bitácora de "${u.usuario||u.nombre||('ID '+id)}"`:`Bitácora del usuario`;
+        tbody.innerHTML=''; if(bit.length===0){const tr=document.createElement('tr');tr.innerHTML='<td colspan="4">Sin registros</td>';tbody.appendChild(tr)}
+        bit.forEach(b=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${fmt(b.fecha)}</td><td>${b.accion}</td><td>${b.hechoPor||''}</td><td>${b.detalles||''}</td>`;tbody.appendChild(tr)})
+        if(typeof dlg.showModal==='function'){dlg.showModal()}else{dlg.setAttribute('open','open')}
+      };
+      btnClose?.addEventListener('click',()=>dlg.close());
+    })();
+  </script>
+
+  <script src="js/theme.js"></script>
+</body>
+</html>

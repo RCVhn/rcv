@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contáctanos - Servicios Mecánicos RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Servicios Mecánicos RCV</div>
+    <nav class="topnav">
+      <a href="index.html">Inicio</a>
+      <a href="servicios.html">Servicios</a>
+      <a href="contacto.html">Contáctanos</a>
+      <a href="login.html">Iniciar sesión</a>
+    </nav>
+    <button id="themeToggle" class="btn-ghost">Modo</button>
+  </header>
+
+  <main class="container">
+    <h1>Contáctanos</h1>
+
+    <section class="layout">
+      <article class="card" style="flex:1 1 320px">
+        <h2>Datos del Taller</h2>
+        <ul>
+          <li><strong>Nombre:</strong> <span id="tNombre"></span></li>
+          <li><strong>Teléfono:</strong> <span id="tTel"></span></li>
+          <li><strong>Email:</strong> <span id="tEmail"></span></li>
+          <li><strong>Dirección:</strong> <span id="tDir"></span></li>
+          <li><strong>Horario:</strong> <span id="tHorario"></span></li>
+        </ul>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <a id="btnWhats" class="btn-primary" target="_blank">Escribir por WhatsApp</a>
+          <a id="btnMail" class="btn-ghost">Enviar correo</a>
+          <a id="btnCatalogo" class="btn-ghost" target="_blank">Catálogo WhatsApp</a>
+        </div>
+      </article>
+
+      <article class="card" style="flex:1 1 420px">
+        <h2>Ubicación</h2>
+        <div id="mapWrap" style="height:360px;overflow:hidden;border-radius:12px"></div>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Mensaje</h2>
+      <form id="formContacto" class="layout">
+        <div class="col-form">
+          <label>Tu nombre</label><input id="nombre" required />
+          <label>Tu teléfono</label><input id="telefono" type="tel" required />
+          <label>Tu correo</label><input id="email" type="email" />
+        </div>
+        <div class="col-table">
+          <label>Mensaje</label><textarea id="mensaje" rows="5" placeholder="Describe tu solicitud, vehículo, placa, etc."></textarea>
+        </div>
+      </form>
+      <div class="actions" style="margin-top:8px">
+        <button id="enviarWhats" class="btn-primary">Enviar por WhatsApp</button>
+        <button id="enviarEmail" class="btn-ghost">Abrir correo</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Facebook</h2>
+      <div id="fbWrap" style="min-height:320px"></div>
+    </section>
+  </main>
+
+  <button id="themeToggle" class="theme-toggle">🌓</button>
+
+  <script src="js/public-content.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/contacto.js"></script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Editor de Páginas Públicas — RCV</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+      --accent:#245C8D; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+      --radius:14px; --shadow:0 10px 30px rgba(2,6,23,.35);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a0f1a);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    header{position:sticky;top:0;z-index:10;background:rgba(15,23,42,.85);backdrop-filter:blur(10px);border-bottom:1px solid rgba(148,163,184,.12)}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{border:none;border-radius:10px;padding:10px 12px;background:#1f2937;color:#fff;cursor:pointer}
+    .btn.primary{background:var(--accent)}
+    .btn.ok{background:var(--ok);color:#052e16}
+    .btn.warn{background:var(--warn);color:#111}
+    .btn.danger{background:var(--danger)}
+    select, input[type="text"],input[type="url"],input[type="tel"],textarea{
+      padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:#0b1220;color:var(--text)
+    }
+    textarea{min-height:90px}
+    main.wrap{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:16px}
+    .card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;border:1px solid rgba(148,163,184,.12)}
+    h2,h3{margin:6px 0 10px 0}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    .small{font-size:12px;color:var(--muted)}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px dashed rgba(148,163,184,.35);border-radius:10px;background:#0b1220}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    @media(max-width:1000px){ main.wrap{grid-template-columns:1fr} .grid3{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap top">
+      <div class="row">
+        <img src="img/logo.png" alt="RCV" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#0b1220">
+        <strong>Editor de Páginas Públicas — RCV</strong>
+        <span id="status" class="small" style="padding:4px 8px;border:1px solid rgba(148,163,184,.25);border-radius:999px">Listo</span>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnExport">Exportar JSON</button>
+        <button class="btn" id="btnImport">Importar JSON</button>
+        <button class="btn ok" id="btnSave">Guardar</button>
+        <button class="btn warn" id="btnCancel">Cancelar</button>
+      </div>
+    </div>
+    <div class="wrap" style="padding-bottom:12px">
+      <div class="row">
+        <label for="pageSelect" class="small">Seleccionar página a editar</label>
+        <select id="pageSelect">
+          <option value="index">Index (página principal)</option>
+          <option value="servicios">Servicios</option>
+        </select>
+        <a class="btn" href="servicios-admin.html" target="_blank" rel="noopener">Editor de servicios</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Navegación de bloques -->
+    <aside class="card">
+      <h3>Bloques de la página</h3>
+      <div id="blockList" class="list"></div>
+      <div class="small" style="margin-top:8px">
+        Para <strong>Index</strong> puedes cambiar <em>orden</em> y <em>visibilidad</em> de secciones.  
+        Para <strong>Servicios</strong> se usa el orden fijo de secciones, pero puedes editar héroe y galería.
+      </div>
+    </aside>
+
+    <!-- Formulario dinámico -->
+    <section class="card" id="formArea">
+      <!-- Se rellena dinámicamente según selección -->
+    </section>
+  </main>
+
+  <input type="file" id="fileInput" accept="application/json" style="display:none" />
+
+  <script>
+    // ======= Modelo y estado =======
+    const DEF = {
+      siteTitle: 'Servicios Mecánicos RCV',
+      heroTitle: 'Mecánica confiable y diagnósticos claros',
+      heroText: 'Reparación, mantenimiento, electrónicos y diagnóstico profesional. Agenda en línea o consúltanos por WhatsApp.',
+      heroImage: 'img/taller-frente.jpg',
+      facebookUrl: 'https://www.facebook.com/tu-facebook',
+      tiktokUrl: 'https://www.tiktok.com/@tu-tiktok',
+      whatsappNumber: '+504 9561-5205',
+      whatsappCatalogUrl: 'https://wa.me/c/50495615205',
+      direccion: 'Tu dirección exacta aquí',
+      telefono: '+504 9561-5205',
+      mapsEmbed: 'https://www.google.com/maps?q=Servicios+Mec%C3%A1nicos+RCV&output=embed',
+      theme: { accent:'#245C8D', accent2:'#D72828' },
+      sections: [
+        { id:'hero', label:'Hero', visible:true },
+        { id:'servicios', label:'Servicios', visible:true },
+        { id:'consulta', label:'Consulta de estado', visible:true },
+        { id:'testimonios', label:'Testimonios', visible:true },
+        { id:'redes', label:'Redes', visible:true },
+        { id:'galeria', label:'Galería', visible:true },
+        { id:'contacto', label:'Contacto', visible:true },
+        { id:'mapa', label:'Mapa', visible:true },
+      ],
+      testimonios: [
+        'Servicio honesto y profesional.',
+        'Me explicaron el diagnóstico con claridad.',
+        'Excelente atención y rapidez.'
+      ],
+      gallery: [ 'img/galeria-1.jpg','img/galeria-2.jpg','img/galeria-3.jpg' ]
+    };
+
+    let saved = loadData();
+    let draft = deepClone(saved);
+    let currentPage = 'index';
+
+    const $ = (s)=>document.querySelector(s);
+    const statusEl = $('#status');
+    const formArea = $('#formArea');
+    const blockList = $('#blockList');
+
+    function loadData(){
+      try{
+        const raw = localStorage.getItem('contenidoInformacion');
+        if(!raw) return deepClone(DEF);
+        return Object.assign({}, DEF, JSON.parse(raw));
+      }catch(e){ return deepClone(DEF); }
+    }
+    function saveData(){
+      localStorage.setItem('contenidoInformacion', JSON.stringify(draft));
+      saved = deepClone(draft);
+      setStatus('Guardado', 'ok');
+    }
+    function cancelChanges(){
+      draft = deepClone(saved);
+      renderAll();
+      setStatus('Cambios cancelados', 'warn');
+    }
+    function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+    function setStatus(text, mode){
+      statusEl.textContent = text;
+      statusEl.style.background = mode==='ok' ? 'rgba(34,197,94,.15)'
+        : mode==='warn' ? 'rgba(245,158,11,.15)' : 'transparent';
+      statusEl.style.border = '1px solid rgba(148,163,184,.25)';
+    }
+
+    // ======= Render: lista de bloques (solo Index editable orden/vis) =======
+    function renderBlocks(){
+      blockList.innerHTML = '';
+      if(currentPage==='index'){
+        (draft.sections||[]).forEach((sec, i)=>{
+          const item = document.createElement('div');
+          item.className='item';
+          item.innerHTML = `
+            <div class="row">
+              <button class="btn" data-act="up" title="Subir">↑</button>
+              <button class="btn" data-act="down" title="Bajar">↓</button>
+              <strong>${sec.label}</strong>
+            </div>
+            <label class="row" style="gap:6px">
+              <span class="small">Visible</span>
+              <input type="checkbox" ${sec.visible?'checked':''}>
+            </label>
+          `;
+          item.querySelector('[data-act="up"]').onclick = ()=>{ if(i>0){ swap(draft.sections,i,i-1); renderBlocks(); setStatus('Sin guardar','warn'); } };
+          item.querySelector('[data-act="down"]').onclick = ()=>{ if(i<draft.sections.length-1){ swap(draft.sections,i,i+1); renderBlocks(); setStatus('Sin guardar','warn'); } };
+          item.querySelector('input[type="checkbox"]').onchange = (e)=>{ sec.visible = !!e.target.checked; setStatus('Sin guardar','warn'); };
+          blockList.appendChild(item);
+        });
+      }else{
+        const p = ['Hero (Servicios)','Listado de categorías','Galería (Servicios)','Footer'];
+        p.forEach(txt=>{
+          const item = document.createElement('div');
+          item.className='item';
+          item.innerHTML = `<div class="row"><strong>${txt}</strong></div><div class="small">Orden fijo</div>`;
+          blockList.appendChild(item);
+        });
+      }
+    }
+    function swap(arr,i,j){ const t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
+
+    // ======= Render: formulario según página =======
+    function renderForm(){
+      if(currentPage==='index'){
+        formArea.innerHTML = `
+          <h2>Index — Ajustes</h2>
+          <div class="grid2">
+            <div>
+              <label>Título del sitio</label>
+              <input id="siteTitle" type="text" value="${esc(draft.siteTitle)}">
+            </div>
+            <div>
+              <label>WhatsApp (número)</label>
+              <input id="whatsappNumber" type="tel" value="${esc(draft.whatsappNumber||'')}">
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div>
+              <label>Facebook (URL)</label>
+              <input id="facebookUrl" type="url" value="${esc(draft.facebookUrl||'')}">
+            </div>
+            <div>
+              <label>TikTok (URL)</label>
+              <input id="tiktokUrl" type="url" value="${esc(draft.tiktokUrl||'')}">
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div>
+              <label>Catálogo WhatsApp (URL)</label>
+              <input id="whatsappCatalogUrl" type="url" value="${esc(draft.whatsappCatalogUrl||'')}">
+            </div>
+            <div>
+              <label>Dirección</label>
+              <input id="direccion" type="text" value="${esc(draft.direccion||'')}">
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:8px">
+            <div>
+              <label>Teléfono</label>
+              <input id="telefono" type="tel" value="${esc(draft.telefono||'')}">
+            </div>
+            <div>
+              <label>Google Maps (embed URL)</label>
+              <input id="mapsEmbed" type="url" value="${esc(draft.mapsEmbed||'')}">
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>Hero</h3>
+            <div class="grid2">
+              <div>
+                <label>Título</label>
+                <input id="heroTitle" type="text" value="${esc(draft.heroTitle||'')}">
+              </div>
+              <div>
+                <label>Imagen (URL)</label>
+                <input id="heroImage" type="url" value="${esc(draft.heroImage||'')}">
+              </div>
+            </div>
+            <div style="margin-top:8px">
+              <label>Texto</label>
+              <textarea id="heroText">${esc(draft.heroText||'')}</textarea>
+            </div>
+          </div>
+
+          <div class="grid2" style="margin-top:12px">
+            <div class="card">
+              <h3>Colores del tema</h3>
+              <div class="grid2">
+                <div>
+                  <label>Primario (accent)</label>
+                  <input id="theme_accent" type="text" value="${esc(draft.theme?.accent||'#245C8D')}">
+                </div>
+                <div>
+                  <label>Secundario (accent-2)</label>
+                  <input id="theme_accent2" type="text" value="${esc(draft.theme?.accent2||'#D72828')}">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Testimonios</h3>
+              <div id="testiList" class="list"></div>
+              <div class="row" style="margin-top:8px">
+                <input id="newTesti" type="text" placeholder="Añadir testimonio">
+                <button class="btn" id="btnAddTesti">Añadir</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>Galería (Index)</h3>
+            <div id="galleryList" class="list"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="newGallery" type="url" placeholder="https://...jpg">
+              <button class="btn" id="btnAddGallery">Añadir</button>
+            </div>
+          </div>
+        `;
+        bindIndexEvents();
+      } else {
+        formArea.innerHTML = `
+          <h2>Servicios — Ajustes</h2>
+          <div class="grid2">
+            <div>
+              <label>Hero · Título</label>
+              <input id="svcHeroTitle" type="text" value="${esc(draft.svcHeroTitle||'Nuestros servicios')}">
+            </div>
+            <div>
+              <label>Hero · Imagen (URL)</label>
+              <input id="heroImage" type="url" value="${esc(draft.heroImage||'img/taller-frente.jpg')}">
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <label>Hero · Texto</label>
+            <textarea id="svcHeroText" placeholder="Todo para el mantenimiento y reparación...">${esc(draft.svcHeroText||'Todo para el mantenimiento y reparación de tu vehículo, con diagnósticos claros y garantía.')}</textarea>
+          </div>
+
+          <div class="grid3" style="margin-top:12px">
+            <div>
+              <label>WhatsApp (número)</label>
+              <input id="whatsappNumber" type="tel" value="${esc(draft.whatsappNumber||'')}">
+            </div>
+            <div>
+              <label>Facebook (URL)</label>
+              <input id="facebookUrl" type="url" value="${esc(draft.facebookUrl||'')}">
+            </div>
+            <div>
+              <label>TikTok (URL)</label>
+              <input id="tiktokUrl" type="url" value="${esc(draft.tiktokUrl||'')}">
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>Galería (Servicios)</h3>
+            <div id="galleryList" class="list"></div>
+            <div class="row" style="margin-top:8px">
+              <input id="newGallery" type="url" placeholder="https://...jpg">
+              <button class="btn" id="btnAddGallery">Añadir</button>
+            </div>
+            <div class="small" style="margin-top:6px">
+              La <em>galería</em> es compartida con Index. Si necesitas galerías diferentes, puedo separar los campos (por ejemplo <code>galleryServicios</code>).
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <h3>Servicios (cards)</h3>
+            <div class="row">
+              <a class="btn primary" href="servicios-admin.html" target="_blank" rel="noopener">Abrir editor de servicios</a>
+            </div>
+            <div class="small" style="margin-top:6px">
+              Consejo: sube/edita imágenes de servicios desde ese editor si las manejas por <code>serviceImages</code>.
+            </div>
+          </div>
+        `;
+        bindServiciosEvents();
+      }
+    }
+
+    // ======= Helpers de UI =======
+    function esc(s){ return (s??'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function bindIndexEvents(){
+      // Campos simples
+      const map = {
+        '#siteTitle':['siteTitle'], '#whatsappNumber':['whatsappNumber'],
+        '#facebookUrl':['facebookUrl'], '#tiktokUrl':['tiktokUrl'],
+        '#whatsappCatalogUrl':['whatsappCatalogUrl'], '#direccion':['direccion'],
+        '#telefono':['telefono'], '#mapsEmbed':['mapsEmbed'],
+        '#heroTitle':['heroTitle'], '#heroImage':['heroImage'], '#heroText':['heroText'],
+        '#theme_accent':['theme','accent'], '#theme_accent2':['theme','accent2']
+      };
+      for(const sel in map){
+        const el = $(sel); if(!el) continue;
+        el.addEventListener('input', (e)=>{
+          setPath(draft, map[sel], e.target.value);
+          setStatus('Sin guardar','warn');
+        });
+      }
+
+      // Testimonios
+      const tl = $('#testiList'); tl.innerHTML = '';
+      (draft.testimonios||[]).forEach((t,i)=>{
+        const row = document.createElement('div'); row.className='item';
+        row.innerHTML = `
+          <div style="flex:1">${esc(t)}</div>
+          <div class="row">
+            <button class="btn" data-act="up">↑</button>
+            <button class="btn" data-act="down">↓</button>
+            <button class="btn danger" data-act="del">Eliminar</button>
+          </div>
+        `;
+        row.querySelector('[data-act="up"]').onclick = ()=>{ if(i>0){ swap(draft.testimonios,i,i-1); bindIndexEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="down"]').onclick = ()=>{ if(i<draft.testimonios.length-1){ swap(draft.testimonios,i,i+1); bindIndexEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="del"]').onclick = ()=>{ draft.testimonios.splice(i,1); bindIndexEvents(); setStatus('Sin guardar','warn'); };
+        tl.appendChild(row);
+      });
+      $('#btnAddTesti').onclick = ()=>{
+        const v = $('#newTesti').value.trim(); if(!v) return;
+        draft.testimonios = draft.testimonios||[]; draft.testimonios.push(v);
+        $('#newTesti').value=''; bindIndexEvents(); setStatus('Sin guardar','warn');
+      };
+
+      // Galería (compartida)
+      const gl = $('#galleryList'); gl.innerHTML = '';
+      (draft.gallery||[]).forEach((u,i)=>{
+        const row = document.createElement('div'); row.className='item';
+        row.innerHTML = `
+          <input type="url" value="${esc(u)}" style="flex:1">
+          <div class="row">
+            <button class="btn" data-act="up">↑</button>
+            <button class="btn" data-act="down">↓</button>
+            <button class="btn danger" data-act="del">Eliminar</button>
+          </div>
+        `;
+        const inp = row.querySelector('input');
+        inp.oninput = ()=>{ draft.gallery[i]=inp.value; setStatus('Sin guardar','warn'); };
+        row.querySelector('[data-act="up"]').onclick = ()=>{ if(i>0){ swap(draft.gallery,i,i-1); bindIndexEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="down"]').onclick = ()=>{ if(i<draft.gallery.length-1){ swap(draft.gallery,i,i+1); bindIndexEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="del"]').onclick = ()=>{ draft.gallery.splice(i,1); bindIndexEvents(); setStatus('Sin guardar','warn'); };
+        gl.appendChild(row);
+      });
+      $('#btnAddGallery').onclick = ()=>{
+        const v = $('#newGallery').value.trim(); if(!v) return;
+        draft.gallery = draft.gallery||[]; draft.gallery.push(v);
+        $('#newGallery').value=''; bindIndexEvents(); setStatus('Sin guardar','warn');
+      };
+    }
+
+    function bindServiciosEvents(){
+      // Campos sencillos (usa claves propias svcHeroTitle/svcHeroText para no romper index)
+      const map = {
+        '#svcHeroTitle':['svcHeroTitle'], '#svcHeroText':['svcHeroText'],
+        '#heroImage':['heroImage'],
+        '#whatsappNumber':['whatsappNumber'], '#facebookUrl':['facebookUrl'], '#tiktokUrl':['tiktokUrl']
+      };
+      for(const sel in map){
+        const el = $(sel); if(!el) continue;
+        el.addEventListener('input', (e)=>{
+          setPath(draft, map[sel], e.target.value);
+          setStatus('Sin guardar','warn');
+        });
+      }
+      // Galería compartida
+      const gl = $('#galleryList'); gl.innerHTML = '';
+      (draft.gallery||[]).forEach((u,i)=>{
+        const row = document.createElement('div'); row.className='item';
+        row.innerHTML = `
+          <input type="url" value="${esc(u)}" style="flex:1">
+          <div class="row">
+            <button class="btn" data-act="up">↑</button>
+            <button class="btn" data-act="down">↓</button>
+            <button class="btn danger" data-act="del">Eliminar</button>
+          </div>
+        `;
+        const inp = row.querySelector('input');
+        inp.oninput = ()=>{ draft.gallery[i]=inp.value; setStatus('Sin guardar','warn'); };
+        row.querySelector('[data-act="up"]').onclick = ()=>{ if(i>0){ swap(draft.gallery,i,i-1); bindServiciosEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="down"]').onclick = ()=>{ if(i<draft.gallery.length-1){ swap(draft.gallery,i,i+1); bindServiciosEvents(); setStatus('Sin guardar','warn'); } };
+        row.querySelector('[data-act="del"]').onclick = ()=>{ draft.gallery.splice(i,1); bindServiciosEvents(); setStatus('Sin guardar','warn'); };
+        gl.appendChild(row);
+      });
+      $('#btnAddGallery').onclick = ()=>{
+        const v = $('#newGallery').value.trim(); if(!v) return;
+        draft.gallery = draft.gallery||[]; draft.gallery.push(v);
+        $('#newGallery').value=''; bindServiciosEvents(); setStatus('Sin guardar','warn');
+      };
+    }
+
+    function setPath(obj, pathArr, value){
+      let ref = obj;
+      for(let i=0;i<pathArr.length-1;i++){
+        const k = pathArr[i];
+        if(!ref[k] || typeof ref[k]!=='object') ref[k] = {};
+        ref = ref[k];
+      }
+      ref[pathArr.at(-1)] = value;
+    }
+
+    // ======= Export/Import/Guardar/Cancelar =======
+    $('#btnSave').onclick = saveData;
+    $('#btnCancel').onclick = cancelChanges;
+    $('#btnExport').onclick = ()=>{
+      const blob = new Blob([JSON.stringify(draft,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'contenidoInformacion.json';
+      a.click();
+    };
+    $('#btnImport').onclick = ()=> $('#fileInput').click();
+    $('#fileInput').addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const json = JSON.parse(reader.result);
+          draft = Object.assign({}, DEF, json);
+          renderAll();
+          setStatus('Sin guardar','warn');
+        }catch(err){ alert('JSON inválido'); }
+      };
+      reader.readAsText(file);
+    });
+
+    // ======= Page selector =======
+    $('#pageSelect').addEventListener('change', (e)=>{
+      currentPage = e.target.value;
+      renderAll();
+    });
+
+    function renderAll(){ renderBlocks(); renderForm(); }
+
+    // init
+    renderAll();
+  </script>
+</body>
+</html>

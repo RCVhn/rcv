@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel — Servicios Mecánicos RCV</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <style>
+    /* ——— Mejora visual mínima sin tocar tu CSS base ——— */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 12px; }
+    .hero {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 10px 12px; border-radius:12px;
+      background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.00));
+      box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,.06));
+      margin: 12px 0 18px 0;
+    }
+    .hero .title { font-size: 28px; font-weight: 800; letter-spacing:.3px; }
+    .chips { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:10px; }
+    .chip {
+      border-radius:12px; padding:10px 12px; background:var(--card, #fff);
+      box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,.06));
+    }
+    .chip .lbl { font-size:12px; opacity:.7; }
+    .chip .val { font-size:20px; font-weight:700; margin-top:4px }
+    .chip .trend { font-size:11px; opacity:.7; margin-top:2px }
+    @media (max-width: 1100px){ .chips{grid-template-columns:repeat(3,1fr);} }
+    @media (max-width: 640px){ .chips{grid-template-columns:repeat(2,1fr);} }
+    .grid-2 { display:grid; grid-template-columns: 1.3fr .7fr; gap:12px; }
+    @media (max-width: 900px){ .grid-2{grid-template-columns:1fr;} }
+    .card { border-radius:12px; background:var(--card,#fff); box-shadow:var(--shadow,0 2px 8px rgba(0,0,0,.06)); padding:12px; }
+    .card h3{ margin:0 0 8px 0 }
+    .list .row{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:8px 6px; border-bottom:1px solid rgba(0,0,0,.06)
+    }
+    .list .row:last-child{ border-bottom:none }
+    .muted{ opacity:.75; font-size: 13px }
+    .tag { font: 600 12px/1 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding:4px 8px; border-radius:999px; background:var(--accent, #3b82f6); color:#fff }
+    .toolbar{ display:flex; gap:8px; align-items:center }
+    .toolbar .btn{ padding:6px 10px }
+    .kpi-skeleton{height:28px; border-radius:8px; background: rgba(0,0,0,.06); animation: pulse 1.6s infinite}
+    @keyframes pulse{0%{opacity:.7}50%{opacity:.4}100%{opacity:.7}}
+  </style>
+</head>
+
+<body data-page-key="admin">
+  <div id="topbarContainer"></div>
+
+  <main class="wrap">
+    <!-- CABECERA -->
+    <section class="hero">
+      <div>
+        <div class="title" id="tituloPanel">Panel principal</div>
+        <div class="muted" id="subtituloPanel">Resumen del taller y atajos inteligentes según tu rol.</div>
+      </div>
+      <div class="toolbar">
+        <a class="btn btn-primary" href="crear-orden.html">Nueva orden</a>
+      </div>
+    </section>
+
+    <!-- KPIs por rol -->
+    <section class="chips" id="kpis">
+      <!-- se llenan por JS; pongo esqueletos para carga -->
+      <div class="chip"><div class="lbl">Órdenes activas</div><div class="val kpi-skeleton"></div></div>
+      <div class="chip"><div class="lbl">Para hoy</div><div class="val kpi-skeleton"></div></div>
+      <div class="chip"><div class="lbl">Ventas mes</div><div class="val kpi-skeleton"></div></div>
+      <div class="chip"><div class="lbl">Gastos mes</div><div class="val kpi-skeleton"></div></div>
+      <div class="chip"><div class="lbl">Neto</div><div class="val kpi-skeleton"></div></div>
+      <div class="chip"><div class="lbl">Clientes nuevos</div><div class="val kpi-skeleton"></div></div>
+    </section>
+
+    <!-- CUERPO: Mi día + Alertas/Actividad -->
+    <section class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <div class="toolbar" style="justify-content:space-between">
+          <h3 id="tituloColIzq">Mi día</h3>
+          <div class="muted" id="hintColIzq"></div>
+        </div>
+        <div id="listaPrincipal" class="list">
+          <div class="row"><span class="muted">Cargando…</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Alertas y pendientes</h3>
+        <div id="listaAlertas" class="list">
+          <div class="row"><span class="muted">Sin alertas por ahora.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEGUNDO BLOQUE: Actividad y Resumen rápido (sustituye "Accesos rápidos") -->
+    <section class="grid-2" style="margin-top:12px">
+      <div class="card">
+        <h3>Actividad reciente</h3>
+        <div id="listaActividad" class="list">
+          <div class="row"><span class="muted">Cargando…</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Resumen del taller</h3>
+        <div class="muted" id="resumenMini">—</div>
+        <div class="list" id="listaResumen">
+          <!-- se llena por JS según rol -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Global / Base / Topbar (tus archivos) -->
+  <script src="js/global.js" defer></script>
+  <script src="js/env.js" defer></script>
+  <script src="js/api.js" defer></script>
+  <script src="js/theme.js" defer></script>
+  <script src="js/logout.js" defer></script>
+  <script src="js/topbar.js" defer></script>
+
+  <script>
+    // Espera a que global.js esté listo y la topbar cargue (para tema/usuario)
+    document.addEventListener('global:ready', () => {
+      if (window.App?.applyTheme) App.applyTheme(App.getTheme());
+    });
+    document.addEventListener('topbar:loaded', () => {
+      if (window.App?.applyTheme) App.applyTheme(App.getTheme());
+      initDashboard();
+    });
+
+    async function initDashboard(){
+      const App = window.App || {};
+      // —— Usuario y rol
+      const usuario = App.getUsuarioActual?.() || null;
+      const rol = String(usuario?.rol || '').toLowerCase();
+      const nombre = usuario?.nombre || usuario?.usuario || 'Usuario';
+      document.getElementById('tituloPanel').textContent = `Hola, ${nombre}`;
+      document.getElementById('subtituloPanel').textContent =
+        rol.includes('admin') || rol.includes('geren') ? 'Visión ejecutiva del taller.' :
+        rol.includes('mec') ? 'Tus órdenes, tiempos y prioridades de hoy.' :
+        rol.includes('rep') ? 'Inventario y entregas pendientes.' :
+        'Resumen del taller y atajos inteligentes según tu rol.';
+
+      // —— Cargar KPIs (tolerante a 404)
+      const kpis = await safeGet('/dashboard/kpis'); // {activas, paraHoy, ingresosMes, gastosMes, neto, clientesNuevos}
+      renderKPIs(kpis, rol);
+
+      // —— Listas principales por rol
+      if (rol.includes('mec')) {
+        document.getElementById('tituloColIzq').textContent = 'Mis órdenes asignadas';
+        document.getElementById('hintColIzq').textContent = 'Últimas 10';
+        await renderLista('/ordenes?assigned=me&limit=10&sort=-fecha', 'listaPrincipal',
+          row => [`#${row.id || row.numero || '—'} · ${row.placa || row.vehiPlaca || '—'}`,
+                  statusChip(row.estado || row.estatus || '—')]);
+        // Alertas del mecánico (pendientes de repuestos / vencidas)
+        await renderLista('/alertas?mine=1&limit=8', 'listaAlertas',
+          r => [r.titulo || 'Pendiente', smallMuted(r.detalle || '')], {empty:'Sin alertas por ahora.'});
+        await renderActividad('listaActividad');
+
+        // Resumen mini
+        renderResumenMini([
+          ['Órdenes en curso', kpis?.activas],
+          ['Para hoy', kpis?.paraHoy],
+          ['Productividad (semana)', kpis?.productividadSemanal ?? '—'],
+        ]);
+
+      } else if (rol.includes('admin') || rol.includes('geren')) {
+        document.getElementById('tituloColIzq').textContent = 'Órdenes recientes';
+        document.getElementById('hintColIzq').textContent = 'Últimas 10';
+        await renderLista('/ordenes?limit=10&sort=-creado', 'listaPrincipal',
+          o => [`#${o.id || o.numero || '—'} · ${o.cliente || o.placa || '—'}`, smallMuted(o.estado || o.estatus || '—')]);
+        await renderLista('/alertas?limit=8', 'listaAlertas',
+          r => [r.titulo || 'Alerta', smallMuted(r.detalle || '')], {empty:'Sin alertas por ahora.'});
+        await renderActividad('listaActividad');
+        renderResumenMini([
+          ['Ingresos mes', money(kpis?.ingresosMes)],
+          ['Gastos mes', money(kpis?.gastosMes)],
+          ['Neto', money(kpis?.neto)],
+          ['Clientes nuevos', kpis?.clientesNuevos ?? 0],
+        ]);
+
+      } else {
+        // roles recepción / repuestos u otros
+        await renderLista('/ordenes?limit=8&sort=-fecha', 'listaPrincipal',
+          o => [`#${o.id || o.numero || '—'} · ${o.cliente || o.placa || '—'}`, smallMuted(o.estado || o.estatus || '—')]);
+        await renderLista('/alertas?limit=8', 'listaAlertas',
+          r => [r.titulo || 'Alerta', smallMuted(r.detalle || '')], {empty:'Sin alertas por ahora.'});
+        await renderActividad('listaActividad');
+        renderResumenMini([
+          ['Órdenes activas', kpis?.activas],
+          ['Para hoy', kpis?.paraHoy],
+          ['Clientes nuevos', kpis?.clientesNuevos ?? 0],
+        ]);
+      }
+    }
+
+    // =============== RENDER HELPERS ===============
+    function money(n){ return (typeof n === 'number') ? 'L ' + n.toLocaleString('es-HN') : (n || '—'); }
+    function smallMuted(t){ return `<span class="muted">${escapeHtml(String(t))}</span>`; }
+    function statusChip(s){ return `<span class="tag" style="background:var(--accent,#3b82f6)">${escapeHtml(String(s))}</span>`; }
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    function renderKPIs(k, rol){
+      const cont = document.getElementById('kpis'); cont.innerHTML = '';
+      const defsAdmin = [
+        ['Órdenes activas', k?.activas],
+        ['Para hoy', k?.paraHoy],
+        ['Ventas mes', money(k?.ingresosMes)],
+        ['Gastos mes', money(k?.gastosMes)],
+        ['Neto', money(k?.neto)],
+        ['Clientes nuevos', k?.clientesNuevos ?? 0],
+      ];
+      const defsMec = [
+        ['Asignadas', k?.asignadas ?? k?.activas],
+        ['Para hoy', k?.paraHoy],
+        ['Completadas (sem)', k?.completadasSemana ?? '—'],
+        ['Tiempos registrados (h)', k?.horasSemana ?? '—'],
+        ['Retrabajos', k?.retrabajos ?? 0],
+        ['Eficiencia', k?.productividadSemanal ?? '—'],
+      ];
+      const defsOther = [
+        ['Órdenes activas', k?.activas],
+        ['Para hoy', k?.paraHoy],
+        ['Ventas mes', money(k?.ingresosMes)],
+        ['Clientes nuevos', k?.clientesNuevos ?? 0],
+        ['—', ''], ['—','']
+      ];
+      const arr = (rol.includes('mec')) ? defsMec :
+                  (rol.includes('admin') || rol.includes('geren')) ? defsAdmin : defsOther;
+      arr.forEach(([lbl,val]) => {
+        const d = document.createElement('div'); d.className='chip';
+        d.innerHTML = `<div class="lbl">${escapeHtml(lbl)}</div><div class="val">${val ?? '—'}</div>`;
+        cont.appendChild(d);
+      });
+    }
+
+    async function renderLista(endpoint, containerId, mapFn, opts={}){
+      const cont = document.getElementById(containerId); cont.innerHTML='';
+      const data = await safeGet(endpoint);
+      const items = Array.isArray(data) ? data
+                  : Array.isArray(data?.items) ? data.items
+                  : [];
+      if(!items.length){
+        cont.innerHTML = `<div class="row"><span class="muted">${opts.empty || 'Sin datos.'}</span></div>`;
+        return;
+      }
+      items.forEach(it => {
+        const [left, right] = mapFn(it);
+        const row = document.createElement('div'); row.className='row';
+        row.innerHTML = `<span>${left}</span><span>${right || ''}</span>`;
+        cont.appendChild(row);
+      });
+    }
+
+    async function renderActividad(containerId){
+      const cont = document.getElementById(containerId); cont.innerHTML='';
+      const data = await safeGet('/actividad?limit=8');
+      const items = Array.isArray(data) ? data
+                  : Array.isArray(data?.items) ? data.items
+                  : [];
+      if(!items.length){
+        cont.innerHTML = `<div class="row"><span class="muted">Sin actividad reciente.</span></div>`;
+        return;
+      }
+      items.forEach(a => {
+        const when = a.fecha || a.cuando || '';
+        const desc = a.descripcion || a.evento || 'Movimiento';
+        const row = document.createElement('div'); row.className='row';
+        row.innerHTML = `<span>${escapeHtml(desc)}</span><span class="muted">${escapeHtml(when)}</span>`;
+        cont.appendChild(row);
+      });
+    }
+
+    function renderResumenMini(pairs){
+      const mini = document.getElementById('resumenMini');
+      const lista = document.getElementById('listaResumen');
+      lista.innerHTML='';
+      mini.textContent = 'Indicadores esenciales del período actual';
+      pairs.forEach(([k,v]) => {
+        const row = document.createElement('div'); row.className='row';
+        row.innerHTML = `<span>${escapeHtml(k)}</span><strong>${(v ?? '—')}</strong>`;
+        lista.appendChild(row);
+      });
+    }
+
+    async function safeGet(path){
+      const App = window.App || {};
+      try {
+        // App.api.get usa API_BASE auto de global.js + auth si existe
+        return await App.api?.get?.(path) ?? await fetchRaw(path);
+      } catch(e){
+        // intento directo a API_BASE si el helper no existe
+        return await fetchRaw(path);
+      }
+      async function fetchRaw(p){
+        const base = localStorage.getItem('API_BASE') || window.API_BASE || `http://${location.hostname}:3001/api`;
+        const res = await fetch(base + p, { headers: { 'Content-Type':'application/json' }, cache:'no-store' });
+        if(!res.ok) return null;
+        try { return await res.json(); } catch { return null; }
+      }
+    }
+  </script>
+</body>
+</html>

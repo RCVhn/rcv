@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Servicios — Servicios Mecánicos RCV</title>
+
+    <!-- API base para producción -->
+  <meta name="rcv-api" content="https://rcv-api-nulp72qabq-uc.a.run.app/api">
+  <script>
+    (function(){
+      const api = document.querySelector('meta[name="rcv-api"]')?.content || 'http://localhost:3001/api';
+      const cur = localStorage.getItem('API_BASE');
+      if (cur !== api) localStorage.setItem('API_BASE', api);
+    })();
+  </script>
+  
+  <!-- SEO básico -->
+  <meta name="description" content="Servicios Mecánicos RCV: mecánica, diagnóstico y mantenimiento con garantía. Cotiza por WhatsApp y recibe atención profesional." />
+  <meta property="og:title" content="Servicios — Servicios Mecánicos RCV" />
+  <meta property="og:description" content="Mecánica, diagnóstico y mantenimiento con diagnósticos claros y garantía." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="img/taller-frente.jpg" />
+
+  <style>
+    :root{
+      --bg:#f4f6f8; --card:#ffffff; --text:#111827; --muted:#6b7280;
+      --accent:#245C8D; --accent-2:#D72828;
+      --shadow:0 8px 24px rgba(15,23,42,.08);
+      --radius:16px; --radius-sm:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:#f4f6f8;color:#111827;font-family:Inter,system-ui,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    .container{max-width:1100px;margin:0 auto;padding:0 16px}
+
+    /* Topbar */
+    .topbar{position:sticky;top:0;z-index:50;background:#fff;box-shadow:var(--shadow)}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:56px;height:auto;border-radius:10px;object-fit:contain;background:#f8f8f8}
+    .brand .title{font-weight:800;white-space:nowrap}
+    nav ul{margin:0;padding:0;list-style:none;display:flex;gap:12px}
+    nav a{display:block;padding:8px 12px;border-radius:10px}
+    nav a:hover{background:rgba(0,0,0,.05)}
+    .nav-cta{background:var(--accent);color:#fff}
+    .active{background:rgba(0,0,0,.07)}
+    .hamb{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+
+    /* Hero */
+    .hero{background:#fff;margin-top:10px}
+    .hero-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:20px;padding:32px;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero h1{margin:0 0 10px 0;font-size:clamp(22px,4.5vw,42px)}
+    .hero p{margin:0;color:var(--muted)}
+    .hero-actions{display:flex;gap:10px;margin-top:16px}
+    .btn{border:none;border-radius:12px;padding:10px 14px;cursor:pointer}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-ghost{background:#fff;border:1px solid #e5e7eb}
+    .hero-art{background:#f1f5f9;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .hero-art img{width:100%;height:auto;display:block}
+
+    /* Toolbar de filtros */
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:20px 0}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{border:1px solid #e5e7eb;border-radius:999px;padding:8px 12px;background:#fff;cursor:pointer;font-size:14px}
+    .chip.active{border-color:var(--accent);color:#fff;background:var(--accent)}
+    .search{display:flex;gap:8px}
+    .search input{padding:10px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px}
+
+    /* Grids y Cards */
+    section.block{margin:28px 0}
+    .block .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:14px;min-height:120px;display:flex;flex-direction:column}
+    .media{height:140px;border-radius:12px;background:repeating-linear-gradient(45deg,#f2f2f2,#f2f2f2 10px,#ececec 10px,#ececec 20px);margin-bottom:10px;object-fit:cover;width:100%}
+    .title{font-weight:700;margin-bottom:6px}
+    .meta{color:var(--muted);font-size:13px;margin-top:auto}
+    .actions{display:flex;gap:8px;margin-top:10px}
+
+    /* Galería */
+    .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .gallery img{width:100%;height:220px;object-fit:cover;border-radius:12px;box-shadow:var(--shadow)}
+    .gallery .ph{height:220px;border-radius:12px;background:#eef1f5;display:flex;align-items:center;justify-content:center;color:#9aa3af}
+
+    /* Responsive */
+    @media (max-width:900px){
+      .hero-inner{grid-template-columns:1fr}
+      .grid,.gallery{grid-template-columns:1fr 1fr}
+      nav ul{display:none}
+      .hamb{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px}
+      .search input{min-width:160px}
+    }
+    @media (max-width:640px){
+      .grid,.gallery{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <!-- TOPBAR INYECTADO -->
+  <!-- Slot para que el loader inyecte el topbar unificado -->
+<div id="topbarSlot"></div>
+
+
+  <main class="container container--fluid">
+    <!-- HERO -->
+    <section class="hero block">
+      <div class="hero-inner">
+        <div>
+          <h1>Nuestros servicios</h1>
+          <p>Todo para el mantenimiento y reparación de tu vehículo, con diagnósticos claros y garantía.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" id="btnWA" target="_blank" rel="noopener">Cotizar por WhatsApp</a>
+            <a class="btn btn-ghost" href="index.html#consulta">Consultar estado</a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <img id="heroImg" src="img/taller-frente.jpg" alt="Taller RCV" loading="lazy" decoding="async" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Filtros -->
+    <section class="toolbar">
+      <div class="chips" id="chips">
+        <button class="chip active" data-cat="all" aria-pressed="true">Todos</button>
+        <button class="chip" data-cat="mecanica" aria-pressed="false">Mecánica</button>
+        <button class="chip" data-cat="diagnostico" aria-pressed="false">Diagnóstico</button>
+        <button class="chip" data-cat="mantenimiento" aria-pressed="false">Mantenimiento</button>
+        <button class="chip" data-cat="repuestos" aria-pressed="false">Repuestos</button>
+      </div>
+      <div class="search">
+        <input type="search" id="q" placeholder="Buscar servicio..." aria-label="Buscar servicio" />
+      </div>
+    </section>
+
+    <!-- MECÁNICA -->
+    <section id="mecanica" class="block anchor">
+      <div class="head"><h2 style="margin:0">Mecánica</h2></div>
+      <div class="grid" id="grid-mecanica">
+        <article class="card" data-cat="mecanica">
+          <img class="media" id="img-w1" alt="Frenos y suspensión" loading="lazy" decoding="async" />
+          <div class="title">Frenos y suspensión</div>
+          <div>Pastillas, discos, líquido, amortiguadores y bujes.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w1" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mecánica</div>
+        </article>
+        <article class="card" data-cat="mecanica">
+          <img class="media" id="img-w2" alt="Sistema de refrigeración" loading="lazy" decoding="async" />
+          <div class="title">Sistema de refrigeración</div>
+          <div>Radiador, bomba de agua, termostato, fugas y mangueras.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w2" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mecánica</div>
+        </article>
+        <article class="card" data-cat="mecanica mantenimiento">
+          <img class="media" id="img-w3" alt="Cambio de aceite y filtros" loading="lazy" decoding="async" />
+          <div class="title">Cambio de aceite y filtros</div>
+          <div>Lubricante recomendado, filtro y control de niveles.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+          <a class="btn btn-primary" id="w3" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mecánica, Mantenimiento</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- DIAGNÓSTICO -->
+    <section id="diagnostico" class="block anchor">
+      <div class="head"><h2 style="margin:0">Diagnóstico</h2></div>
+      <div class="grid" id="grid-diagnostico">
+        <article class="card" data-cat="diagnostico">
+          <img class="media" id="img-w4" alt="Diagnóstico OBD-II" loading="lazy" decoding="async" />
+          <div class="title">Diagnóstico computarizado OBD-II</div>
+          <div>Lectura de códigos, datos en vivo e interpretación profesional.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w4" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Diagnóstico</div>
+        </article>
+        <article class="card" data-cat="diagnostico">
+          <img class="media" id="img-w5" alt="Prueba de compresión" loading="lazy" decoding="async" />
+          <div class="title">Prueba de compresión</div>
+          <div>Valores de fábrica, comparativa entre cilindros y recomendaciones.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w5" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Diagnóstico</div>
+        </article>
+        <article class="card" data-cat="diagnostico">
+          <img class="media" id="img-w6" alt="Prueba de fugas" loading="lazy" decoding="async" />
+          <div class="title">Prueba de fugas (Leak Down)</div>
+          <div>Identifica pérdidas por anillos, válvulas o junta de culata.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w6" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Diagnóstico</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- MANTENIMIENTO -->
+    <section id="mantenimiento" class="block anchor">
+      <div class="head"><h2 style="margin:(0)">Mantenimiento</h2></div>
+      <div class="grid" id="grid-mantenimiento">
+        <article class="card" data-cat="mantenimiento">
+          <img class="media" id="img-w7" alt="Servicio por kilometraje" loading="lazy" decoding="async" />
+          <div class="title">Servicio por kilometraje</div>
+          <div>Cada 5k/10k/15k km: aceites, filtros, revisión general.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w7" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mantenimiento</div>
+        </article>
+        <article class="card" data-cat="mantenimiento">
+          <img class="media" id="img-w8" alt="Limpieza de inyectores" loading="lazy" decoding="async" />
+          <div class="title">Limpieza de inyectores</div>
+          <div>Equipo especializado y aditivos aprobados.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w8" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mantenimiento</div>
+        </article>
+        <article class="card" data-cat="mantenimiento">
+          <img class="media" id="img-w9" alt="Alineación y balanceo" loading="lazy" decoding="async" />
+          <div class="title">Alineación y balanceo</div>
+          <div>Mejor conducción y desgaste uniforme de llantas.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w9" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Mantenimiento</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- REPUESTOS -->
+    <section id="repuestos" class="block anchor">
+      <div class="head"><h2 style="margin:0">Repuestos</h2></div>
+      <div class="grid" id="grid-repuestos">
+        <article class="card" data-cat="repuestos">
+          <img class="media" id="img-w10" alt="Venta e instalación" loading="lazy" decoding="async" />
+          <div class="title">Venta e instalación</div>
+          <div>Partes compatibles con garantía de instalación.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w10" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Repuestos</div>
+        </article>
+        <article class="card" data-cat="repuestos">
+          <img class="media" id="img-w11" alt="Sensores y electrónicos" loading="lazy" decoding="async" />
+          <div class="title">Sensores y electrónicos</div>
+          <div>O2, ABS, MAF/MAP, TPMS y más.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w11" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Repuestos</div>
+        </article>
+        <article class="card" data-cat="repuestos">
+          <img class="media" id="img-w12" alt="Frenos y suspensión" loading="lazy" decoding="async" />
+          <div class="title">Frenos y suspensión</div>
+          <div>Pastillas, discos, amortiguadores, terminales.</div>
+          <div class="actions">
+            <a class="btn btn-ghost" href="index.html#contacto">Más info</a>
+            <a class="btn btn-primary" id="w12" target="_blank" rel="noopener">Cotizar</a>
+          </div>
+          <div class="meta">Categoría: Repuestos</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- GALERÍA (imágenes reales) -->
+    <section id="galeria" class="block">
+      <div class="head"><h2 style="margin:0">Galería de trabajos</h2></div>
+      <div class="gallery" id="gallery">
+        <div class="ph">Galería</div>
+        <div class="ph">Galería</div>
+        <div class="ph">Galería</div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="background:#fff;margin-top:24px">
+    <div class="container" style="display:grid;grid-template-columns:1.2fr .8fr;gap:16px;padding:16px">
+      <div>
+        <strong>Servicios Mecánicos RCV</strong>
+        <div class="muted">Dirección: <span id="addrSpan">—</span></div>
+        <div class="muted">Tel: <span id="telSpan">—</span> · WhatsApp: <span id="waSpan">—</span></div>
+      </div>
+      <div class="credits" style="color:var(--muted);font-size:13px;align-self:end;justify-self:end">
+        © <span id="y"></span> RCV. Todos los derechos reservados.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer año
+    document.getElementById('y').textContent = new Date().getFullYear();
+
+    // === Relleno desde "contenido de información" ===
+    (function(){
+      const DEF = {
+        facebookUrl: 'https://www.facebook.com/tu-facebook',
+        tiktokUrl: 'https://www.tiktok.com/@tu-tiktok',
+        whatsappNumber: '+504 9561-5205',
+        whatsappCatalogUrl: 'https://wa.me/c/50495615205',
+        heroImage: 'img/taller-frente.jpg',
+        direccion: 'Barrio Medina 8 calle, 6-7 avenida, SPS.',
+        telefono: '+504 9561-5205',
+        gallery: ['img/galeria-1.jpg','img/galeria-2.jpg','img/galeria-3.jpg'],
+        serviceImages: {
+          w1:'img/services/frenos-susp.jpg', w2:'img/services/refrigeracion.jpg', w3:'img/services/aceite-filtros.jpg',
+          w4:'img/services/obd2.jpg', w5:'img/services/compresion.jpg', w6:'img/services/leakdown.jpg',
+          w7:'img/services/kilometraje.jpg', w8:'img/services/inyectores.jpg', w9:'img/services/alineacion.jpg',
+          w10:'img/services/venta-instalacion.jpg', w11:'img/services/sensores.jpg', w12:'img/services/frenos-repuestos.jpg'
+        }
+      };
+      let info = null;
+      try { info = JSON.parse(localStorage.getItem('contenidoInformacion') || 'null'); } catch {}
+      const cfg = Object.assign({}, DEF, info || {});
+      const $ = (s)=>document.querySelector(s);
+
+      if ($('#heroImg') && cfg.heroImage) $('#heroImg').src = cfg.heroImage;
+
+      const waPlain = (cfg.whatsappNumber || '').replace(/[^\d]/g,'');
+      const waBase  = waPlain ? ('https://wa.me/' + waPlain) : '';
+      const waMsgBase = 'Hola, quiero cotizar un servicio';
+
+      if ($('#btnWA') && waBase) $('#btnWA').href = waBase + '?text=' + encodeURIComponent('Hola, quiero cotizar un servicio');
+      if ($('#ctaWhatsApp') && waBase) $('#ctaWhatsApp').href = waBase + '?text=' + encodeURIComponent('Hola, quiero agendar un servicio');
+
+      // *** Pasamos el CTA al topbar inyectado (por si aún no existe en el DOM) ***
+      window.__waHref = waBase ? waBase + '?text=' + encodeURIComponent(waMsgBase) : '';
+      window.__waHrefCTA = window.__waHref;
+
+      if ($('#waSpan')) $('#waSpan').textContent = cfg.whatsappNumber || '+504 9561-5205';
+      if ($('#telSpan')) $('#telSpan').textContent = cfg.telefono || cfg.whatsappNumber || '+504 9561-5205';
+      if ($('#addrSpan')) $('#addrSpan').textContent = cfg.direccion || '—';
+
+      if (cfg.serviceImages && typeof cfg.serviceImages === 'object') {
+        Object.entries(cfg.serviceImages).forEach(([id, url])=>{
+          const img = document.getElementById('img-'+id);
+          if (img && url) img.src = url;
+        });
+      }
+
+      (function fillGallery(){
+        const gallery = document.getElementById('gallery');
+        if (!gallery) return;
+        const items = Array.isArray(cfg.gallery) ? cfg.gallery : [];
+        if (items.length === 0) return;
+        gallery.innerHTML = '';
+        items.forEach((src,i)=>{
+          const img = document.createElement('img');
+          img.loading = 'lazy'; img.decoding = 'async';
+          img.src = src; img.alt = 'Trabajo ' + (i+1);
+          gallery.appendChild(img);
+        });
+      })();
+
+      (function perServiceWhatsApp(){
+        if (!waBase) return;
+        const cards = document.querySelectorAll('.card');
+        cards.forEach(card=>{
+          const title = card.querySelector('.title')?.textContent?.trim() || 'Servicio';
+          const btn   = card.querySelector('.btn.btn-primary[id^="w"]');
+          if (btn) btn.href = waBase + '?text=' + encodeURIComponent('Hola, quiero cotizar: ' + title);
+        });
+      })();
+    })();
+
+    // === Filtros y búsqueda (con accesibilidad) ===
+    (function(){
+      const chips = document.getElementById('chips');
+      const q = document.getElementById('q');
+      const cards = Array.from(document.querySelectorAll('.card'));
+      let cat = 'all', term = '';
+
+      function apply(){
+        const t = term.trim().toLowerCase();
+        cards.forEach(card=>{
+          const c = (card.getAttribute('data-cat') || '').toLowerCase();
+          const text = card.innerText.toLowerCase();
+          const matchCat = (cat==='all') || c.includes(cat);
+          const matchText = !t || text.includes(t);
+          card.style.display = (matchCat && matchText) ? '' : 'none';
+        });
+      }
+
+      chips?.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('chip')){
+          document.querySelectorAll('.chip').forEach(x=>{
+            x.classList.remove('active');
+            x.setAttribute('aria-pressed','false');
+          });
+          e.target.classList.add('active');
+          e.target.setAttribute('aria-pressed','true');
+          cat = e.target.getAttribute('data-cat');
+          apply();
+        }
+      });
+      q?.addEventListener('input', (e)=>{ term = e.target.value; apply(); });
+    })();
+  </script>
+
+  <!-- Loader del topbar unificado -->
+  <script src="js/env.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/include-topbar.v10.js" defer></script>
+</body>
+</html>

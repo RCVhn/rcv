@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kardex — RCV</title>
+
+  <link rel="stylesheet" href="css/estilos.css" />
+
+  <!-- Fija API_BASE si no existe -->
+  <script>
+    (function(){
+      try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){}
+    })();
+  </script>
+
+  <!-- Base del proyecto (mismo orden que usas en privadas) -->
+  <script src="js/common.js" defer></script>
+  <script src="js/global.js" defer></script>
+  <script src="js/panel-links.js" defer></script>
+    <!-- Theme (necesario para el toggle) -->
+  <script src="js/theme.js" defer></script>
+  <script src="js/topbar.js" defer></script>
+  <script src="js/toast.js" defer></script>
+  <script src="js/perms.js" defer></script>
+  <script src="js/logout.js" defer></script>
+  <script src="js/api.js" defer></script>
+
+  <!-- Página -->
+  <script src="js/kardex.js" defer></script>
+
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    .card{background:var(--card-bg, #fff);border:1px solid var(--border,#eef2f7);border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.06);padding:14px}
+    .row{display:grid;grid-template-columns:1.3fr .9fr .6fr 1fr auto;gap:8px}
+    .row > * {min-width:0}
+    .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid var(--border,#eef2f7);text-align:left}
+    th{font-weight:600}
+    .right{text-align:right}
+    @media (max-width:900px){
+      .row{grid-template-columns:1fr 1fr;gap:10px}
+    }
+  </style>
+</head>
+<body onload="protegerPagina()">
+  <header class="topbar">
+    <div class="brand">Servicios Mecánicos RCV</div>
+    <nav class="topnav">
+      <a href="admin.html">Panel</a>
+      <a href="inventario.html">Inventario</a>
+      <a href="kardex.html" aria-current="page">Kardex</a>
+    </nav>
+    <button id="btnLogout" class="btn-ghost">Cerrar sesión</button>
+    <button id="themeToggle" class="btn-ghost">Modo</button>
+  </header>
+
+  <main class="wrap">
+    <h1 style="margin:8px 0 12px">Kardex</h1>
+
+    <!-- Formulario de movimiento -->
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:1.1rem">Registrar movimiento</h2>
+      <div class="row" style="align-items:end">
+        <div>
+          <label for="selProducto">Producto</label>
+          <select id="selProducto"></select>
+        </div>
+        <div>
+          <label for="selTipo">Tipo</label>
+          <select id="selTipo">
+            <option value="entrada">Entrada</option>
+            <option value="salida">Salida</option>
+            <option value="ajuste">Ajuste</option>
+          </select>
+        </div>
+        <div>
+          <label for="inpCantidad">Cantidad</label>
+          <input id="inpCantidad" type="number" step="0.01" min="0" placeholder="0.00" />
+        </div>
+        <div>
+          <label for="inpRef">Referencia</label>
+          <input id="inpRef" type="text" placeholder="Opcional" />
+        </div>
+        <div>
+          <button id="btnAgregar" class="btn-primary">Agregar</button>
+        </div>
+      </div>
+      <small id="stockInfo" style="display:block;margin-top:8px;opacity:.8"></small>
+    </section>
+
+    <!-- Tabla de últimos movimientos -->
+    <section class="card">
+      <div class="toolbar">
+        <strong>Últimos movimientos</strong>
+        <label style="margin-left:auto">Mostrar
+          <select id="selLimit">
+            <option>10</option>
+            <option selected>25</option>
+            <option>50</option>
+            <option>100</option>
+          </select>
+        </label>
+        <button id="btnRefrescar" class="btn">Refrescar</button>
+      </div>
+      <div style="overflow:auto;margin-top:8px">
+        <table id="tblKardex">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th class="right">Cantidad</th>
+              <th>Referencia</th>
+            </tr>
+          </thead>
+          <tbody><!-- rows --></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

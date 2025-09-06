@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Iniciar Sesión - Servicios Mecánicos RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body class="centered">
+
+  <div class="login-card card">
+    <img src="img/logo.png" alt="Logo RCV" class="logo-card" />
+    <h1>Servicios Mecánicos RCV</h1>
+
+    <form id="loginForm" novalidate>
+      <label for="usuario">Usuario</label>
+      <input type="text" id="usuario" name="usuario" placeholder="Ingrese su usuario" required />
+
+      <label for="password">Contraseña</label>
+      <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required />
+
+      <div class="actions" style="margin-top: 8px;">
+        <input type="checkbox" id="mostrarPassword" />
+        <label for="mostrarPassword">Mostrar contraseña</label>
+      </div>
+
+      <div class="actions" style="margin-top: 12px;">
+        <button type="submit" class="btn-primary">Iniciar sesión</button>
+      </div>
+
+      <div id="mensajeError" class="error" style="color:red;margin-top:10px;"></div>
+    </form>
+  </div>
+
+  <script src="js/env.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/init-usuarios.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

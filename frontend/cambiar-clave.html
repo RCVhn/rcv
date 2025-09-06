@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cambiar clave - Servicios Mecánicos RCV</title>
+  <link rel="stylesheet" href="css/estilos.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <main class="card" style="max-width:420px;width:min(420px,94vw);margin:24px auto;padding:24px 20px;">
+    <!-- Logo -->
+    <img src="img/logo.png" alt="Servicios Mecánicos RCV" class="logo-card">
+
+    <h1 style="margin:0 0 14px; font-size:20px">Cambiar contraseña</h1>
+    <form id="formCambioClave" novalidate>
+      <div class="row">
+        <label for="passwordActual">Contraseña actual</label>
+        <input type="password" id="passwordActual" autocomplete="current-password"
+               placeholder="Tu contraseña actual" required />
+      </div>
+
+      <div class="row">
+        <label for="nuevaClave">Nueva contraseña</label>
+        <input type="password" id="nuevaClave" autocomplete="new-password"
+               placeholder="Mín. 8, Aa1 y símbolo" required />
+        <div class="hint">Debe tener mínimo 8 caracteres, mayúscula, minúscula, número y símbolo.</div>
+      </div>
+
+      <div class="row">
+        <label for="confirmarClave">Confirmar nueva contraseña</label>
+        <input type="password" id="confirmarClave" autocomplete="new-password"
+               placeholder="Confirmar nueva contraseña" required />
+      </div>
+
+      <div id="mensaje"></div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary" id="btnGuardar">Actualizar</button>
+        <a class="btn" href="admin.html">Cancelar</a>
+      </div>
+    </form>
+  </main>
+
+  <script src="js/cambiar-clave.js"></script>
+</body>
+</html>

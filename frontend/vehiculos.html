@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vehículos - Servicios Mecánicos RCV</title>
+
+  <link rel="stylesheet" href="css/estilos.css" />
+
+  <!-- Fija API_BASE si no existe -->
+  <script>
+    (function(){ try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){} })();
+  </script>
+
+  <!-- Base del proyecto -->
+  <script src="js/common.js" defer></script>
+  <script src="js/global.js" defer></script>
+  <script src="js/panel-links.js" defer></script>
+  <script src="js/topbar.js" defer></script>
+  <script src="js/toast.js" defer></script>
+  <script src="js/perms.js" defer></script>
+  <script src="js/logout.js" defer></script>
+
+  <!-- Lógica de página -->
+  <script src="js/vehiculos.js" defer></script>
+</head>
+<body data-page-key="vehiculos">
+  <div id="topbarContainer"></div>
+
+  <main class="container container--fluid">
+    <h1>Gestión de vehículos</h1>
+
+    <div class="layout">
+      <!-- FORM CREAR/EDITAR -->
+      <section class="card col-form" data-page-key="vehiculos">
+        <h2 id="formTitle">Nuevo vehículo</h2>
+
+        <form id="formVehiculo" novalidate class="perm-add grid-2">
+          <input type="hidden" id="v_id" />
+
+          <!-- Código de cliente (0007 -> id 7) -->
+          <div class="field">
+            <label for="v_cliente_code">Código de cliente *</label>
+            <input id="v_cliente_code" data-client-code type="text" placeholder="Ej. 0007" required />
+            <input id="v_cliente_id" type="hidden" />
+          </div>
+
+          <div class="field">
+            <label for="v_placa">Placa *</label>
+            <input id="v_placa" type="text" required placeholder="ABC123" />
+          </div>
+
+          <div class="field">
+            <label for="v_marca">Marca</label>
+            <input id="v_marca" type="text" placeholder="Toyota" />
+          </div>
+
+          <div class="field">
+            <label for="v_modelo">Modelo</label>
+            <input id="v_modelo" type="text" placeholder="Corolla" />
+          </div>
+
+          <div class="field">
+            <label for="v_anio">Año</label>
+            <input id="v_anio" type="number" placeholder="2018" />
+          </div>
+
+          <div class="field">
+            <label for="v_color">Color</label>
+            <input id="v_color" type="text" placeholder="Color" />
+          </div>
+
+          <div class="field full">
+            <label for="v_vin">VIN</label>
+            <input id="v_vin" type="text" placeholder="VIN" />
+          </div>
+
+          <div class="actions full">
+            <button type="submit" class="btn-primary" id="btnGuardarVehiculo">Guardar</button>
+            <button type="button" class="btn" id="btnCancelarEdicion">Cancelar</button>
+          </div>
+
+          <div id="msgFormVehiculo" class="error" aria-live="polite"></div>
+          <p class="muted full">Campos marcados con * son obligatorios.</p>
+        </form>
+      </section>
+
+      <!-- TABLA -->
+      <section class="card col-table">
+        <div class="card-header">
+          <h2>Vehículos</h2>
+          <div class="toolbar">
+            <span id="countVehiculos" class="muted">Vehículos (0)</span>
+            <input id="q" placeholder="Buscar por placa, VIN, marca o modelo…" />
+            <button id="btnBuscar" class="btn-ghost" type="button">Buscar</button>
+            <button id="btnRefrescar" class="btn-ghost" type="button">Refrescar</button>
+            <button id="btnExportVehiculos" class="btn-ghost" type="button">Imprimir/Exportar</button>
+            <button id="btnExportVehiculosCsv" class="btn-ghost" type="button">Exportar CSV</button>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="tabla" id="tablaVehiculos">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Placa</th>
+                <th>Marca / Modelo</th>
+                <th>Cliente</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="skel-row"><td colspan="5">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="paginador-vehiculos" class="paginator"></div>
+      </section>
+    </div>
+
+    <!-- 3ra CARD: Listado completo (como en clientes) -->
+    <section class="card">
+      <h2>Listado completo</h2>
+      <div id="detalleVehiculo" class="muted">Sin datos para mostrar.</div>
+    </section>
+  </main>
+
+  <!-- OVERLAY para drawer -->
+  <div id="drawerOverlay" class="drawer-overlay" hidden></div>
+
+  <!-- DRAWER EDICIÓN -->
+  <aside id="drawerEditar" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <strong id="drawerTitulo" class="drawer-title">Editar vehículo</strong>
+      <button class="drawer-close btn-ghost" id="btnCerrarDrawer" aria-label="Cerrar panel">Cerrar</button>
+    </div>
+
+    <div class="drawer-body">
+      <form id="formEditar" novalidate>
+        <!-- Permitir cambiar cliente desde el drawer -->
+        <div class="field">
+          <label for="ed_cliente_code">Código de cliente</label>
+          <input id="ed_cliente_code" data-client-code type="text" placeholder="Ej. 0007" />
+          <input id="ed_cliente_id" type="hidden" />
+        </div>
+
+        <div class="field">
+          <label>Placa</label>
+          <input id="ed_placa" type="text" />
+        </div>
+        <div class="field">
+          <label>Marca</label>
+          <input id="ed_marca" type="text" />
+        </div>
+        <div class="field">
+          <label>Modelo</label>
+          <input id="ed_modelo" type="text" />
+        </div>
+        <div class="field">
+          <label>Año</label>
+          <input id="ed_anio" type="number" />
+        </div>
+        <div class="field">
+          <label>Color</label>
+          <input id="ed_color" type="text" />
+        </div>
+        <div class="field full">
+          <label>VIN</label>
+          <input id="ed_vin" type="text" />
+        </div>
+
+        <div class="actions">
+          <button id="btnGuardarEditar" type="button" class="btn-primary">Guardar cambios</button>
+          <button id="btnCancelarEditar" type="button" class="btn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </aside>
+
+  <!-- DIALOG de detalle (como clientes) -->
+  <dialog id="dlgVehiculo" style="width:min(860px,96vw);border:none;border-radius:12px;padding:0;box-shadow:var(--shadow)">
+    <div class="card" style="margin:0;border:none;box-shadow:none">
+      <div class="card-header">
+        <h2 id="dlgVehiculoTitulo" style="margin:0">Vehículo</h2>
+        <div class="toolbar">
+          <button id="btnDlgPrint" class="btn-ghost" type="button">Imprimir</button>
+          <button id="btnDlgPdf" class="btn-ghost" type="button">Guardar PDF</button>
+          <button id="btnCerrarDlgVehiculo" class="btn-ghost" type="button">Cerrar</button>
+        </div>
+      </div>
+      <div id="dlgVehiculoBody" style="max-height:65vh;overflow:auto;padding:8px 12px 16px 12px"></div>
+    </div>
+  </dialog>
+
+  <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <script src="js/theme.js"></script>
+</body>
+</html>

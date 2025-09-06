@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Redirigiendo…</title>
+  <meta name="robots" content="noindex">
+  <meta http-equiv="refresh" content="0">
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:#f4f6f8;color:#111827}
+    .wrap{height:100%;display:grid;place-items:center}
+    .card{background:#fff;padding:20px 24px;border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,.08);text-align:center}
+    .muted{color:#6b7280;font-size:14px}
+    a{color:#245C8D;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 style="margin:0 0 6px 0">Redirigiendo…</h1>
+      <div class="muted">No encontramos esa ruta. Te llevamos al inicio.</div>
+      <div style="margin-top:10px"><a id="link" href="#">Ir al inicio</a></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var parts = location.pathname.split('/').filter(Boolean);
+      // Buscamos el segmento "frontend" para construir la base correctamente,
+      // funcione o no el sitio como Project Pages (/REPO/...) o User Pages (/...).
+      var idx = parts.indexOf('frontend');
+      var base;
+      if (idx >= 0) {
+        var prefix = parts.slice(0, idx).join('/'); // segmentos antes de "frontend"
+        base = '/' + (prefix ? prefix + '/' : '') + 'frontend/';
+      } else {
+        // Fallback: asumimos Project Pages; primera parte es el repo (si existe)
+        var repo = parts.length ? parts[0] : '';
+        base = '/' + (repo ? repo + '/' : '') + 'frontend/';
+      }
+
+      var dest = base + 'index.html';
+      // Intento 1: reemplazo duro
+      try { location.replace(dest + (location.search || '') + (location.hash || '')); }
+      catch(e) { location.href = dest; }
+
+      // Enlace visible por si el replace falla
+      var a = document.getElementById('link');
+      if (a) a.href = dest;
+    })();
+  </script>
+</body>
+</html>

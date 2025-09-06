@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Documentos — RCV</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+  <style>
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,.08);padding:14px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+    .toolbar input{min-width:220px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eef2f7}
+    .right{text-align:right}
+    .muted{opacity:.72}
+    .pill{padding:2px 8px;border-radius:999px;background:#eef2f7;font-size:.9em}
+    .actions{display:flex;gap:6px}
+    @media(max-width:900px){
+      .actions{flex-wrap:wrap}
+    }
+  </style>
+  <script>
+    (function(){
+      try{ if(!localStorage.getItem('API_BASE')) localStorage.setItem('API_BASE','http://localhost:3001/api'); }catch(e){}
+    })();
+  </script>
+</head>
+<body>
+  <div id="topbar"></div>
+  <div class="wrap">
+    <h1>Documentos</h1>
+
+    <section class="card">
+      <div class="toolbar">
+        <input id="txtBuscar" type="search" placeholder="Buscar por correlativo..." />
+        <button id="btnBuscar">Buscar</button>
+        <span class="muted">Muestra los últimos 50 si no se busca.</span>
+      </div>
+
+      <table id="tblDocs">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Correlativo</th>
+            <th class="right">Total</th>
+            <th>Estado</th>
+            <th style="width:320px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Base del proyecto -->
+  <script src="js/global.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/panel-links.js"></script>
+    <!-- Theme (necesario para el toggle) -->
+  <script src="js/theme.js" defer></script>
+  <script src="js/topbar.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/documentos.js"></script>
+</body>
+</html>
