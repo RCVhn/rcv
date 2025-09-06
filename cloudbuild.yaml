@@ -8,32 +8,28 @@ substitutions:
   _CONNECTOR: rcv-conn
 
 steps:
-  # Build
   - name: 'gcr.io/cloud-builders/docker'
     dir: 'backend'
     args: ['build','-t','${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}','.']
 
-  # Push
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push','${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}']
 
-  # Deploy a Cloud Run (bandera por bandera como en tu despliegue manual)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
-    args:
-      [
-        'run','deploy','${_SERVICE}',
-        '--image','${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}',
-        '--region','${_REGION}','--platform','managed',
-        '--allow-unauthenticated',
-        '--service-account','rcv-api-sa@${PROJECT_ID}.iam.gserviceaccount.com',
-        '--set-env-vars','NODE_ENV=production,DB_ENGINE=postgres,PGHOST=${_PGHOST},PGPORT=5432,PGDATABASE=${_DBNAME},PGUSER=${_DBUSER},FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io',
-        '--set-secrets','JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest,ADMIN_PASS=ADMIN_PASS:latest',
-        '--vpc-connector','${_CONNECTOR}',
-        '--vpc-egress','private-ranges-only',
-        '--min-instances','1','--max-instances','50','--concurrency','80',
-        '--cpu','1','--memory','512Mi','--timeout','60'
-      ]
+    args: [
+      'run','deploy','${_SERVICE}',
+      '--image','${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}',
+      '--region','${_REGION}','--platform','managed',
+      '--allow-unauthenticated',
+      '--service-account','rcv-api-sa@${PROJECT_ID}.iam.gserviceaccount.com',
+      '--set-env-vars','NODE_ENV=production,DB_ENGINE=postgres,PGHOST=${_PGHOST},PGPORT=5432,PGDATABASE=${_DBNAME},PGUSER=${_DBUSER},FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io',
+      '--set-secrets','JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest,ADMIN_PASS=ADMIN_PASS:latest',
+      '--vpc-connector','${_CONNECTOR}',
+      '--vpc-egress','private-ranges-only',
+      '--min-instances','1','--max-instances','50','--concurrency','80',
+      '--cpu','1','--memory','512Mi','--timeout','60'
+    ]
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}'
