@@ -1,0 +1,161 @@
+/* ordenes.js */
+(function(){
+  // asegurar que usuario esté logueado en estas páginas
+  protegerPagina();
+})();
+
+const form = document.getElementById('formOrden');
+if (form) {
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const usuario = JSON.parse(sessionStorage.getItem('usuarioActivo') || 'null');
+
+    const tipoServicio = document.getElementById('tipoServicio').value;
+    const placa = document.getElementById('placa').value.trim();
+    const marca = document.getElementById('marca').value.trim();
+    const km = document.getElementById('kilometraje').value;
+    const observaciones = document.getElementById('observaciones').value.trim();
+    const fotosInput = document.getElementById('fotos');
+
+    if (!placa) { alert('La placa es obligatoria'); return; }
+
+    // leer fotos (si hay)
+    let fotos = [];
+    if (fotosInput && fotosInput.files && fotosInput.files.length) {
+      try {
+        fotos = await leerFotosInput(fotosInput.files);
+      } catch (e) {
+        console.warn('Error leyendo fotos', e);
+      }
+    }
+
+    let ordenes = JSON.parse(localStorage.getItem('ordenes') || '[]');
+
+    const nuevaOrden = {
+      id: siguienteIdOrden(),
+      numero: `RCV-${String(new Date().getFullYear()).slice(-2)}-${('0000'+ (parseInt(localStorage.getItem('secuenciaOrden')))).slice(-4)}`,
+      placa,
+      marca,
+      kilometraje: km || null,
+      tipoServicio,
+      observaciones,
+      fotos,
+      estado: 'Pendiente',
+      creadoPor: usuario.usuario,
+      creadoPorNombre: usuario.nombre || usuario.usuario,
+      fechaCreacion: new Date().toISOString()
+    };
+
+    ordenes.unshift(nuevaOrden); // agregar al inicio
+    localStorage.setItem('ordenes', JSON.stringify(ordenes));
+
+    alert(`Orden creada (Nº ${nuevaOrden.numero})`);
+    location.href = 'ordenes-listado.html';
+  });
+
+  document.getElementById('btnCancelar').addEventListener('click', () => {
+    if (confirm('Cancelar creación de orden?')) {
+      location.href = 'ordenes-listado.html';
+    }
+  });
+}
+
+/* funciones para listado */
+function obtenerOrdenes() {
+  return JSON.parse(localStorage.getItem('ordenes') || '[]');
+}
+
+function formatoFecha(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString();
+  } catch(e) { return iso; }
+}
+
+function renderTablaOrdenes() {
+  const tbody = document.querySelector('#tablaOrdenes tbody');
+  if (!tbody) return;
+
+  const filtroPlaca = (document.getElementById('busquedaPlaca') || {value:''}).value.trim().toLowerCase();
+  const filtroEstado = (document.getElementById('filtroEstado') || {value:''}).value;
+
+  let ordenes = obtenerOrdenes();
+
+  if (filtroPlaca) ordenes = ordenes.filter(o => (o.placa || '').toLowerCase().includes(filtroPlaca));
+  if (filtroEstado) ordenes = ordenes.filter(o => o.estado === filtroEstado);
+
+  tbody.innerHTML = '';
+  ordenes.forEach((o, idx) => {
+    const tr = document.createElement('tr');
+
+    const actions = `
+      <button class="btn-ghost" onclick="verOrden(${o.id})">Ver</button>
+      <button class="btn-ghost" onclick="imprimirOrden(${o.id})">Imprimir</button>
+      <button class="btn-ghost" onclick="cambiarEstado(${o.id})">Cambiar estado</button>
+    `;
+
+    tr.innerHTML = `
+      <td data-label="#">${idx+1}</td>
+      <td data-label="Orden">${o.numero}</td>
+      <td data-label="Placa">${o.placa || ''}</td>
+      <td data-label="Servicio">${o.tipoServicio}</td>
+      <td data-label="Fecha">${formatoFecha(o.fechaCreacion)}</td>
+      <td data-label="Estado">${o.estado}</td>
+      <td data-label="Acciones">${actions}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* acciones (dejar globales para poder llamarlas desde HTML generado) */
+window.verOrden = function(id){
+  const ordenes = obtenerOrdenes();
+  const o = ordenes.find(x => x.id === id);
+  if (!o) { alert('Orden no encontrada'); return; }
+
+  // mostrar en nueva ventana/simple popup con contenido presentable
+  const w = window.open('', '_blank', 'width=800,height=600');
+  w.document.write(`<html><head><title>Orden ${o.numero}</title><link rel="stylesheet" href="css/estilos.css"></head><body>`);
+  w.document.write(`<header style="padding:12px;background:#f8fafc;border-bottom:1px solid #eee"><h2>Orden ${o.numero}</h2></header>`);
+  w.document.write(`<main style="padding:16px">`);
+  w.document.write(`<p><strong>Placa:</strong> ${o.placa}</p>`);
+  w.document.write(`<p><strong>Servicio:</strong> ${o.tipoServicio}</p>`);
+  w.document.write(`<p><strong>Marca/Modelo:</strong> ${o.marca || '-'}</p>`);
+  w.document.write(`<p><strong>Kilometraje:</strong> ${o.kilometraje || '-'}</p>`);
+  w.document.write(`<p><strong>Observaciones:</strong><br>${o.observaciones || '-'}</p>`);
+  w.document.write(`<p><strong>Estado:</strong> ${o.estado}</p>`);
+  w.document.write(`<p><strong>Creado por:</strong> ${o.creadoPorNombre} (${o.creadoPor}) — ${formatoFecha(o.fechaCreacion)}</p>`);
+  if (o.fotos && o.fotos.length) {
+    w.document.write('<div><strong>Fotos:</strong><br>');
+    o.fotos.forEach((f, i) => w.document.write(`<img src="${f}" alt="foto${i}" style="max-width:160px;margin:6px;border:1px solid #eee">`));
+    w.document.write('</div>');
+  }
+  w.document.write(`<div style="margin-top:18px"><button onclick="window.print()">Imprimir</button></div>`);
+  w.document.write(`</main></body></html>`);
+  w.document.close();
+};
+
+window.imprimirOrden = function(id){
+  window.verOrden(id); // la ventana abierta tiene botón imprimir
+};
+
+window.cambiarEstado = function(id){
+  const ordenes = obtenerOrdenes();
+  const idx = ordenes.findIndex(x => x.id === id);
+  if (idx === -1) { alert('No encontrada'); return; }
+  const actual = ordenes[idx].estado;
+  const siguiente = prompt(`Estado actual: ${actual}\nEscribe el nuevo estado (Pendiente, En Proceso, Finalizado)`, actual);
+  if (!siguiente) return;
+  ordenes[idx].estado = siguiente;
+  localStorage.setItem('ordenes', JSON.stringify(ordenes));
+  alert('Estado actualizado');
+  renderTablaOrdenes();
+};
+
+/* botones filtro */
+const btnRef = document.getElementById('btnRefrescar');
+if (btnRef) btnRef.addEventListener('click', renderTablaOrdenes);
+const busq = document.getElementById('busquedaPlaca');
+if (busq) busq.addEventListener('input', renderTablaOrdenes);
+const filtro = document.getElementById('filtroEstado');
+if (filtro) filtro.addEventListener('change', renderTablaOrdenes);

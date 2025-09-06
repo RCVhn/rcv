@@ -1,0 +1,667 @@
+/* ===================== PALETA RCV ===================== */
+/* Core */
+:root{
+  /* Paleta base del logo RCV */
+  --rcv-navy:#0C2340;   /* azul marino profundo */
+  --rcv-blue:#0057B8;   /* azul corporativo */
+  --rcv-sky: #58B6FF;   /* azul claro/acento */
+  --rcv-red: #E10600;   /* rojo acento secundario */
+  --rcv-silver:#E5E7EB; /* gris claro/bordes */
+  --rcv-ink:#0F172A;    /* texto oscuro */
+  --rcv-slate:#64748B;  /* texto atenuado */
+
+  /* Tema oscuro (default) */
+  --bg:#0b182e;                 /* base oscura con tinte azul */
+  --card:#101b33;               /* tarjetas */
+  --accent:#58B6FF;             /* acción primaria */
+  --accent-2:#E10600;           /* acción secundaria (rojo RCV) */
+  --muted:#93a0b4;              /* texto atenuado */
+  --text:#e7eefc;               /* texto principal en oscuro */
+  --text-strong:#ffffff;
+  --border:#1b2a4a;             /* bordes fríos */
+  --shadow:0 8px 28px rgba(11,19,36,0.40);
+
+  --danger:#E10600;
+  --success:#22c55e;
+  --warning:#f59e0b;
+
+  /* Base tipográfica */
+  font-family:Inter,system-ui,Arial,sans-serif;
+
+  /* Compatibilidad con estilos existentes */
+  --card-border:var(--border);
+}
+
+/* Tema CLARO con la misma paleta RCV */
+html[data-theme="light"]{
+  --bg:#F2F6FB;                 /* azul muy claro */
+  --card:#ffffff;
+  --accent:#0057B8;             /* azul corporativo */
+  --accent-2:#58B6FF;           /* azul claro/acento */
+  --muted:#6b7280;
+  --text:#0B1220;
+  --text-strong:#0f172a;
+  --border:#E6EEF8;             /* borde con tinte azul claro */
+  --shadow:0 6px 18px rgba(15,23,42,0.08);
+}
+
+/* ====================================================== */
+/* Layout base */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text)}
+.centered{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.container{max-width:980px;margin:24px auto;padding:0 16px}
+.card{background:var(--card);padding:18px;border-radius:10px;box-shadow:var(--shadow);margin-bottom:16px;border:1px solid var(--border)}
+
+.login-card{width:100%;max-width:420px;padding:28px;text-align:left}
+
+/* Logo unificado */
+.logo-card{
+  display:block;margin:0 auto 16px auto;width:100%;max-width:170px;height:auto;max-height:125px;object-fit:contain;
+  filter:drop-shadow(0 4px 14px rgba(16,24,40,.20));
+}
+
+h1,h2{margin:0 0 12px 0}
+h1{text-align:center}
+.usuario-info{font-size:14px;color:var(--muted);margin-left:12px;text-align:center}
+
+label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+input[type="text"],input[type="password"],input[type="number"],textarea,select{
+  width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-top:6px;font-size:15px;background:transparent;color:var(--text)
+}
+textarea{resize:vertical}
+.actions{display:flex;gap:8px;margin-top:12px}
+.btn-primary{background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+.btn-ghost{background:transparent;border:1px solid var(--border);padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text)}
+.btn-ghost:hover,.btn-primary:hover{opacity:0.95}
+.muted{color:var(--muted);font-size:13px;margin-top:10px}
+
+/* Tabla */
+.tabla{width:100%;border-collapse:collapse;margin-top:12px;background:transparent}
+.tabla th,.tabla td{padding:10px;border-bottom:1px solid rgba(230,238,248,.14);text-align:left;font-size:14px}
+.tabla thead th{background:rgba(230,238,248,.06);color:var(--text)}
+
+/* Chips de estado */
+.status-pill{padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600;color:#0f172a;background:rgba(255,255,255,.8)}
+.status-on{background:#22c55e;color:#0b1e0f}
+.status-off{background:#94a3b8;color:#0b1324}
+
+/* Col widths de Usuarios */
+#tablaUsuarios th:nth-child(1),#tablaUsuarios td:nth-child(1){width:30px}
+#tablaUsuarios th:nth-child(2),#tablaUsuarios td:nth-child(2){width:70px}
+#tablaUsuarios th:nth-child(3),#tablaUsuarios td:nth-child(3){width:90px;max-width:90px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tablaUsuarios th:nth-child(4),#tablaUsuarios td:nth-child(4){width:120px}
+#tablaUsuarios th:nth-child(5),#tablaUsuarios td:nth-child(5){width:75px}
+#tablaUsuarios th:nth-child(6),#tablaUsuarios td:nth-child(6){width:95px}
+#tablaUsuarios th:nth-child(7),#tablaUsuarios td:nth-child(7){width:90px}
+
+/* Responsive tabla */
+@media (max-width:720px){
+  .tabla thead{display:none}
+  .tabla,.tabla tbody,.tabla tr,.tabla td{display:block;width:100%}
+  .tabla tr{margin-bottom:12px;background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--border)}
+  .tabla td{border:none;padding:6px}
+  .tabla td:before{content:attr(data-label);font-weight:600;display:block;color:var(--muted);margin-bottom:6px}
+}
+
+/* ===== Topbar (versión final, responsive) ===== */
+.topbar{position:relative;z-index:10;background:var(--card);border-bottom:1px solid var(--border);box-shadow:var(--shadow);padding-right:56px}
+.topbar .tb-wrap{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;min-height:68px;padding:10px 18px;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.logo-topbar{height:120px;width:auto;object-fit:contain;filter:drop-shadow(0 6px 18px rgba(0,0,0,.25))}
+.brand-container{display:flex;flex-direction:column;line-height:1.1;min-width:0}
+.brand{font-weight:800;font-size:22px;color:var(--text)}
+.user-info-topbar{font-size:12px;color:var(--muted)}
+
+/* Derecha: burger + logout (no se montan) */
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar .btn-ghost{color:var(--text);border-color:var(--border)}
+.topbar .btn-ghost:hover{background:rgba(255,255,255,.06)}
+
+/* Botones flotantes en la esquina del topbar */
+#btnLogout{
+  position:absolute;top:10px;right:12px;z-index:12;
+}
+#btnThemeToggle{
+  position:absolute;bottom:8px;right:12px;margin:0;width:36px;height:36px;border-radius:50%;
+  background:var(--card);border:1px solid #e5e7eb;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:background .2s ease, transform .2s ease, border-color .2s ease;
+  /* ocultar texto, dejar solo el ícono */
+  font-size:0; line-height:0; white-space:nowrap;
+}
+#btnThemeToggle:hover{background:rgba(0,0,0,.05);transform:scale(1.05)}
+#themeIcon{line-height:1;color:#111827;font-size:18px}
+:root[data-theme="dark"] #btnThemeToggle{background:#111827;border-color:#1f2937;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+:root[data-theme="dark"] #btnThemeToggle:hover{background:rgba(255,255,255,.08)}
+:root[data-theme="dark"] #themeIcon{color:#f8fafc}
+
+/* Nav (desktop) */
+.topnav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center; /* Centra los botones */
+  flex: 1; /* Ocupa el espacio disponible */
+  flex-wrap: wrap;
+  padding: 8px 16px 12px;
+  border-top: 1px solid transparent;
+}
+.topnav a{
+  color:var(--text);
+  text-decoration:none;
+  padding:6px 10px;border-radius:8px;border:1px solid transparent;white-space:nowrap;
+  transition:background-color .18s ease,color .18s ease,border-color .18s ease;
+}
+.topnav a:hover,
+.topnav a:focus-visible{background:var(--accent);color:#fff;outline:none;border-color:var(--accent)}
+.topnav a.active,
+.topnav a[aria-current="page"]{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+
+/* Burger oculto en desktop por defecto */
+.tb-burger{display:none;background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text)}
+
+/* Responsivo */
+@media (max-width:980px){
+  .logo-topbar{height:42px}
+}
+@media (max-width:860px){
+  .logo-topbar{height:36px}
+  .brand{font-size:16px}
+
+  /* ⬇️ En móvil: menú cerrado por defecto; se abre con .open */
+  .topnav{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding:6px 12px 12px;
+    border-top:1px solid var(--border);
+    margin:0;
+    background:var(--card);
+  }
+  .topnav.open{display:flex}
+
+  /* ⬇️ Mostrar hamburguesa en móvil */
+  .tb-burger{display:inline-flex; position:relative; z-index:13;}
+
+  .topbar, .topbar *{max-width:100%}
+
+  /* mover logout un poco a la izquierda para no montarse con el burger */
+  #btnLogout{ top:8px; right:56px; }
+  #btnThemeToggle{ bottom:8px; right:12px; z-index:11; }
+}
+@media (min-width:861px){ .tb-burger{display:none} }
+@media (max-width:600px){
+  .logo-topbar{height:32px}
+  .brand{font-size:15px}
+  #btnLogout{top:8px;right:56px}   /* mantener separación del burger también en <=600px */
+  #btnThemeToggle{bottom:8px;right:12px}
+}
+
+/* Menú fila (reutilizable) */
+tr.menu-row td{background:rgba(230,238,248,.06);border-top:1px solid var(--border);padding:10px 12px}
+.row-menu{display:flex;gap:8px;flex-wrap:wrap}
+.row-menu button{background:transparent;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--text)}
+.row-menu button:hover{background:rgba(88,182,255,.10)}
+
+/* Modal */
+.modal{position:fixed;inset:0;display:none;z-index:10000}
+.modal.open{display:block}
+.modal__backdrop{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%, -50%);width:min(920px,92vw);max-height:88vh;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px}
+.modal__header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.modal__title{margin:0;font-size:18px;color:var(--text)}
+.modal__sub{font-size:12px;color:var(--muted);margin:4px 0 8px}
+.modal__close{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:10px;padding:6px 10px;cursor:pointer}
+.modal__body{display:grid;gap:12px}
+.modal__footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+
+/* Botones genéricos y permisos */
+.btn{border:1px solid var(--border);background:transparent;border-radius:10px;padding:8px 12px;cursor:pointer;color:var(--text)}
+.btn-primary{border-color:var(--accent);background:var(--accent);color:#fff}
+.perm-group{border:1px solid var(--border);border-radius:12px;padding:12px}
+.perm-group h4{margin:0 0 8px;font-size:14px}
+.perm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.perm-item{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;padding:6px 10px}
+.perm-item input[type="checkbox"]{transform:scale(1.1)}
+.is-disabled{opacity:.6;pointer-events:none;filter:grayscale(0.2)}
+.perm-add{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.perm-add input{border:1px solid var(--border);border-radius:10px;padding:6px 10px;background:transparent;color:var(--text)}
+.perm-add .hint{font-size:12px;opacity:.75}
+#permPageChips{margin-top:6px}
+.perm-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:4px 8px;margin:4px 6px 0 0;background:transparent;color:var(--text)}
+.perm-chip button{border:none;background:transparent;cursor:pointer;font-size:14px;line-height:1;color:var(--text)}
+.perm-chip button:hover{color:var(--danger)}
+
+/* Toasts */
+.toast-container{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{min-width:260px;max-width:360px;background:var(--card);border:1px solid var(--border);border-left:4px solid;border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;animation:toast-in .2s ease-out}
+.toast-title{font-weight:600;font-size:14px;line-height:1.3;margin-bottom:2px;color:var(--text)}
+.toast-msg{font-size:13px;color:var(--muted);line-height:1.35}
+.toast-close{margin-left:auto;background:transparent;border:none;cursor:pointer;font-size:16px;line-height:1;padding:0 4px;color:var(--text)}
+.toast-success{border-left-color:var(--success)}
+.toast-error{border-left-color:var(--danger)}
+.toast-warning{border-left-color:var(--warning)}
+.toast-info{border-left-color:var(--accent)}
+
+@keyframes toast-in{
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out{ to { opacity: 0; transform: translateY(6px); } }
+
+/* Links y logos */
+a{color:var(--accent)}
+.logo-card,.logo-topbar{filter:drop-shadow(0 10px 24px rgba(0,0,0,.25))}
+
+/* Impresión */
+@media print{
+  .topbar,.kebab-btn,.kebab-menu,.toolbar button,[data-print-hide="true"]{display:none !important}
+}
+
+/* === Paginador y estados === */
+.paginator{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.paginator .btn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text)}
+.paginator .btn[disabled]{opacity:.5;cursor:not-allowed}
+.paginator .meta{font-size:.9rem;color:var(--muted)}
+.paginator select{border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:transparent;color:var(--text)}
+
+/* Skeletons para tablas */
+.skel{position:relative;overflow:hidden;background:rgba(230,238,248,.06)}
+.skel::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg, rgba(246,247,248,0) 0%, rgba(255,255,255,0.10) 50%, rgba(246,247,248,0) 100%);
+  animation:shimmer 1.2s infinite
+}
+@keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+.skel-row td{height:38px}
+.empty-row td{color:var(--muted);text-align:center}
+
+/* ====== [MAPA CAMBIOS — AÑADIDOS FINALES] ====== */
+
+/* 1) A11y: focus ring consistente en controles interactivos */
+:where(button,[type="button"],[type="submit"],a,input,select,textarea,.btn,.btn-ghost):focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+/* 2) Modo compacto */
+.compact .card{padding:12px}
+.compact .tabla th,.compact .tabla td{padding:6px 8px;font-size:13px}
+.compact .btn,.compact .btn-ghost,.compact .btn-primary{padding:6px 10px}
+.compact input[type="text"],
+.compact input[type="password"],
+.compact input[type="number"],
+.compact textarea,
+.compact select{padding:8px 10px;font-size:14px}
+
+/* 3) Resaltado de búsqueda */
+mark{background:rgba(88,182,255,.25);padding:0 .12em;border-radius:3px}
+html[data-theme="light"] mark{background:rgba(11,110,253,.18)}
+
+/* 4) Caja monoespaciada */
+.code-box{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px; line-height:1.35;
+  background:#0f172a; color:#e2e8f0;
+  padding:8px 10px; border-radius:8px;
+  border:1px solid #1f2937; word-break:break-all;
+}
+html[data-theme="light"] .code-box{
+  background:#0b1220; color:#e6f0ff; border-color:#1b2a4a;
+}
+
+/* 5) Medidor de contraseña */
+.pwd-meter{
+  font-size:12px; margin-top:6px; border-radius:6px;
+  padding:4px 8px; background:rgba(88,182,255,.10); color:var(--text);
+}
+
+/* 6) Disabled */
+button[disabled], .btn[disabled], .btn-ghost[disabled]{
+  opacity:.55; cursor:not-allowed; filter:saturate(.8);
+}
+
+/* 7) Kebab flotante: foco accesible */
+.kebab-menu button:focus-visible{
+  background:#eef2ff; outline:2px solid var(--accent);
+}
+
+/* 8) Paginador refuerzo (sin duplicar gap) */
+.paginator select{min-width:72px}
+
+/* 9) Estado filas */
+.empty-row td{color:var(--muted);text-align:center}
+.skel-row td{height:38px}
+
+/* Kebab flotante (⋮) */
+.kebab-menu{
+  position:absolute;
+  z-index:1200;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 12px 28px rgba(15,23,42,.30);
+  padding:6px;
+  min-width:180px;
+}
+.kebab-menu button{
+  width:100%;
+  text-align:left;
+  background:transparent;
+  border:none;
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:pointer;
+  font-size:14px;
+  color:var(--text);
+}
+.kebab-menu button:hover,
+.kebab-menu button:focus-visible{
+  background:rgba(88,182,255,.10);
+  outline: none;
+}
+
+/* ===== PATCH SEGURO ===== */
+
+/* Filas: zebra sutil + hover accesible */
+.tabla tbody tr:nth-child(even){ background: rgba(255,255,255,.02); }
+.tabla tbody tr:hover{ background: rgba(88,182,255,.12); }
+
+/* Encabezados oscuro más legibles */
+html:not([data-theme="light"]) .tabla thead th{
+  color: var(--text);
+  opacity: .9;
+  font-weight: 600;
+}
+
+/* Botones del menú de fila compactos */
+.row-menu{ gap: 6px; }
+.row-menu button{ padding: 7px 10px; }
+
+/* Pills en oscuro con mejor contraste */
+html:not([data-theme="light"]) .status-on  {
+  background: rgba(34,197,94,.22);
+  color: #d1fae5;
+  border: 1px solid rgba(34,197,94,.35);
+}
+html:not([data-theme="light"]) .status-off {
+  background: rgba(148,163,184,.18);
+  color: #e2e8f0;
+  border: 1px solid rgba(148,163,184,.35);
+}
+
+/* Inputs / selects: altura visual */
+input[type="text"], input[type="password"], input[type="number"], select{ min-height:36px }
+
+/* Paginador: hover */
+.paginator{ padding-top:6px }
+.paginator .btn:hover{ background: rgba(88,182,255,.10) }
+.paginator .meta{ opacity:.9 }
+
+/* ===== Ajustes de contraste en modo oscuro (mantener) ===== */
+:root[data-theme="dark"] body{ background:var(--bg); color:var(--text); }
+:root[data-theme="dark"] .card{ background:var(--card); box-shadow:var(--shadow); }
+:root[data-theme="dark"] .topbar{ background:var(--card); border-bottom:1px solid var(--card-border); }
+:root[data-theme="dark"] .topnav a{ color:var(--text); }
+:root[data-theme="dark"] .topnav a:hover{ background:rgba(255,255,255,.06); }
+
+/* Inputs y selects en oscuro */
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] input[type="password"],
+:root[data-theme="dark"] input[type="number"],
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select{
+  background:#0b1324;
+  color:var(--text);
+  border:1px solid #1f2937;
+}
+
+/* Tablas en oscuro */
+:root[data-theme="dark"] .tabla th,
+:root[data-theme="dark"] .tabla td{ border-bottom:1px solid #1f2937; }
+:root[data-theme="dark"] .tabla thead th{ background:#0b1324; }
+
+/* Botones en oscuro */
+:root[data-theme="dark"] .btn-ghost{ color:var(--text); border-color:#1f2937; }
+:root[data-theme="dark"] .btn-ghost:hover{ background:rgba(255,255,255,.06); }
+:root[data-theme="dark"] .btn-primary{ background:var(--accent); color:#081018; }
+
+/* Filas/listas en oscuro */
+:root[data-theme="dark"] .row{ border-color:#1f2937; }
+/* --- FIX anti-montaje: solo en móvil --- */
+@media (max-width:650px){
+  /* Reserva espacio vertical y lateral para los dos botones */
+  .topbar{
+    padding-right: 56px;   /* ya lo tienes, lo reafirmamos */
+    padding-bottom: 44px;  /* espacio para #btnThemeToggle en la esquina */
+  }
+
+  /* Aumenta la altura mínima para que quepan 36px arriba + 36px abajo */
+  .topbar .tb-wrap{
+    min-height: 96px;      /* antes 68px */
+    align-items: center;   /* mantén alineación de contenido */
+  }
+
+  /* Reafirma posiciones (sin cambios visuales, solo claridad) */
+  #btnLogout{ top: 10px; right: 12px; }
+  #btnThemeToggle{ bottom: 8px; right: 12px; }
+}
+#formVehiculo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+#formVehiculo .full {
+  grid-column: 1 / -1; /* para campos o botones que ocupen todo el ancho */
+}
+
+/* Responsive: en pantallas pequeñas vuelve a una columna */
+@media (max-width: 600px) {
+  #formVehiculo {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==== Layout de formularios y tablas en cards ==== */
+.layout {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.col-form {
+  flex: 0 0 360px;
+  min-width: 320px;
+}
+
+.col-table {
+  flex: 1 1 520px;
+  min-width: 320px;
+}
+
+/* Formulario en grid */
+form.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+form.grid-2 .field {
+  display: flex;
+  flex-direction: column;
+}
+
+form.grid-2 .full {
+  grid-column: 1 / -1;
+}
+
+form.grid-2 .half {
+  grid-column: span 1;
+}
+
+form.grid-2 label {
+  font-size: .92rem;
+  color: var(--muted, #6b7280);
+  margin-bottom: 4px;
+}
+
+form.grid-2 .actions {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+form.grid-2 .error {
+  color: red;
+  grid-column: 1 / -1;
+}
+
+/* Responsive */
+@media (max-width:720px){
+  .col-form {
+    flex: 1 1 100%;
+  }
+  form.grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+/* ==== Fix global para que los formularios NO se salgan de las cards ==== */
+
+/* Los hijos de contenedores flex (layout) pueden encogerse */
+.layout > * { min-width: 0; }
+
+/* El propio formulario y sus celdas del grid pueden encogerse */
+form.grid-2 { 
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr); /* importante: minmax(0,1fr) */
+  gap: 10px 12px;
+  min-width: 0;
+}
+form.grid-2 .field,
+form.grid-2 .full,
+form.grid-2 .half { min-width: 0; }
+
+/* Inputs 100% del ancho disponible y sin desbordar */
+form.grid-2 input,
+form.grid-2 textarea,
+form.grid-2 select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Filas de ancho completo */
+form.grid-2 .full { grid-column: 1 / -1; }
+
+/* Teléfono y Email a la par; el resto usa .full en el HTML */
+form.grid-2 .half { grid-column: span 1; }
+
+/* Por si alguna card tiene padding/border que cause overflow visual */
+.card { overflow: hidden; }
+
+/* Responsive: una sola columna en pantallas pequeñas */
+@media (max-width: 720px) {
+  form.grid-2 { grid-template-columns: minmax(0,1fr); }
+}
+/* evita que las columnas flex corten el contenido */
+.col-table { min-width: 0; }
+
+/* permite scroll horizontal si una tabla tiene muchas columnas */
+.table-scroll { overflow-x: auto; }
+.tel-whatsapp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tel-whatsapp a {
+  color: #25D366;
+}
+.tel-whatsapp a:hover {
+  opacity: 0.8;
+}
+
+/* ===== Drawer global (compartido) ===== */
+.drawer{
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(360px,95vw);
+  background: var(--card); color: var(--text);
+  border-left: 1px solid var(--border);
+  box-shadow: -16px 0 32px rgba(0,0,0,.30);
+  transform: translateX(100%); transition: transform .25s ease;
+  z-index: 99998; display: flex; flex-direction: column;
+}
+.drawer.open{ transform: translateX(0%); }
+.drawer-header{
+  position: sticky; top: 0; background: var(--card);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+}
+.drawer-title{ font-weight: 700; }
+.drawer-body{ padding: 14px 16px; overflow: auto; display: grid; gap: 10px 12px; }
+.drawer-footer{ padding: 12px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end; background: var(--card); }
+
+/* Overlay del drawer (global) */
+.drawer-overlay{
+  position: fixed; inset: 0; background: rgba(15,23,42,.45); backdrop-filter: blur(2px);
+  z-index: 99997; opacity: 0; transition: opacity .2s ease; pointer-events: none;
+}
+
+/* Inputs dentro del drawer con look consistente */
+.drawer input[type="text"], .drawer input[type="email"], .drawer input[type="tel"],
+.drawer input[type="number"], .drawer textarea, .drawer select{
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+}
+.drawer-overlay{
+  position:fixed; inset:0;
+  background:rgba(15,23,42,.35);           /* oscurece */
+  backdrop-filter:blur(2px);                /* desenfoque suave */
+  -webkit-backdrop-filter:blur(2px);
+  z-index:40;                               /* debajo del drawer (que tiene 50) */
+}
+/* === Ajuste global de ancho === */
+:root{
+  --container-max: 1440px; /* ancho máximo para todas las páginas */
+  --container-gutter: 16px;
+}
+
+.container{
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-gutter);
+}
+
+/* En pantallas ultra-anchas, aún más */
+@media (min-width: 1800px){
+  :root{ --container-max: 1600px; }
+}
+
+/* Contenedor fluido (ocupa todo el ancho de la pantalla) */
+.container--fluid{
+  max-width: none;
+  width: 100%;
+  padding-inline: 20px; /* margen lateral mínimo */
+}
+/* Catálogo: acciones inline debajo (kebab) alineadas a la derecha */
+#tabCat td.td-acciones { text-align: right; }
+#tabCat tr.menu-row td { padding-top: 0; }
+#tabCat tr.menu-row .row-menu {
+  display: flex;
+  justify-content: flex-end; /* 🔒 alinea las opciones a la derecha */
+  gap: 8px;
+  padding: 8px 0;
+}
+
+/* Botón kebab con forma de pastilla, igual que el resto */
+.kebab-btn.btn-menu {
+  border-radius: 9999px;
+  padding: 6px 10px;
+}
