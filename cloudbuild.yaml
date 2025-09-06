@@ -1,0 +1,62 @@
+substitutions:
+  _REGION: us-central1
+  _SERVICE: rcv-api
+  _AR_REPO: rcv-api
+  _PGHOST: 10.168.0.3
+  _DBNAME: rcvdb
+  _DBUSER: rcvapp
+  _CONNECTOR: rcv-conn
+
+steps:
+  # Build (Dockerfile en ./backend)
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'backend'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}'
+      - '.'
+
+  # Push a Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}'
+
+  # Deploy a Cloud Run (mismos flags que usamos a mano, sin bootstrap)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--service-account'
+      - 'rcv-api-sa@${PROJECT_ID}.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,DB_ENGINE=postgres,PGHOST=${_PGHOST},PGPORT=5432,PGDATABASE=${_DBNAME},PGUSER=${_DBUSER},FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io'
+      - '--set-secrets'
+      - 'JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest'
+      - '--vpc-connector'
+      - '${_CONNECTOR}'
+      - '--vpc-egress'
+      - 'private-ranges-only'
+      - '--min-instances'
+      - '1'
+      - '--max-instances'
+      - '50'
+      - '--concurrency'
+      - '80'
+      - '--cpu'
+      - '1'
+      - '--memory'
+      - '512Mi'
+      - '--timeout'
+      - '60'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/rcv-api:${SHORT_SHA}'
