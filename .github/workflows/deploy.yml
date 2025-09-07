@@ -1,7 +1,6 @@
 name: Deploy to Cloud Run
 on: { push: { branches: [ "main" ] } }
 permissions: { contents: read, id-token: write }
-
 env:
   PROJECT_ID: rcvprod
   REGION: us-central1
@@ -9,7 +8,6 @@ env:
   SERVICE: rcv-api
   WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,5 +20,5 @@ jobs:
         create_credentials_file: true
     - uses: google-github-actions/setup-gcloud@v2
     - run: gcloud config set project ${{ env.PROJECT_ID }}
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE"
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --quiet
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE" --quiet
