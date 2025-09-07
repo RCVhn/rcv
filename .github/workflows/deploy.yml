@@ -35,6 +35,7 @@ jobs:
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud config set project ${{ env.PROJECT_ID }}
 
       - name: Auth Docker to Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
@@ -68,6 +69,7 @@ jobs:
           service_account: ${{ env.DEPLOY_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud config set project ${{ env.PROJECT_ID }}
 
       - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
