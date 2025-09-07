@@ -39,6 +39,7 @@ jobs:
 
       - name: Auth Docker to Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
       - name: Build & Push image
         run: |
@@ -49,7 +50,7 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy "${{ env.SERVICE }}" \
+          gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" \
             --image="$IMAGE" \
             --region="${{ env.REGION }}" --platform=managed \
             --allow-unauthenticated \
@@ -72,12 +73,13 @@ jobs:
       - run: gcloud config set project ${{ env.PROJECT_ID }}
 
       - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
       - run: |
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
           docker build -t "$IMAGE" backend
           docker push "$IMAGE"
-          gcloud run deploy "${{ env.SERVICE }}" \
+          gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" \
             --image="$IMAGE" --region="${{ env.REGION }}" --platform=managed \
             --allow-unauthenticated --service-account="${{ env.RUNTIME_SA }}" \
             --set-env-vars="${{ env.ENVVARS }}" --set-secrets="${{ env.SECRETS_MAP }}" \
