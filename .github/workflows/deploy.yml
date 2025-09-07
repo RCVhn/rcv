@@ -20,6 +20,7 @@ jobs:
         create_credentials_file: true
     - run: echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$GOOGLE_APPLICATION_CREDENTIALS" >> $GITHUB_ENV
     - uses: google-github-actions/setup-gcloud@v2
+    - run: gcloud info && gcloud auth list && gcloud config get-value project
     - run: gcloud info && gcloud auth list && echo "ADC=$GOOGLE_APPLICATION_CREDENTIALS"
     - run: gcloud config set project ${{ env.PROJECT_ID }}
     - run: gcloud auth application-default print-access-token >/dev/null && echo "ADC OK"
