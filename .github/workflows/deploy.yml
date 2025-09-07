@@ -37,6 +37,7 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
       - run: gcloud config set project ${{ env.PROJECT_ID }}
+      - run: gcloud info && gcloud auth list && gcloud --version
 
       - name: Auth Docker to Artifact Registry
       - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
@@ -72,6 +73,7 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
       - run: gcloud config set project ${{ env.PROJECT_ID }}
+      - run: gcloud info && gcloud auth list && gcloud --version
 
       - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
 
