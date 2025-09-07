@@ -23,5 +23,5 @@ jobs:
     - run: gcloud info && gcloud auth list && echo "ADC=$GOOGLE_APPLICATION_CREDENTIALS"
     - run: gcloud config set project ${{ env.PROJECT_ID }}
     - run: gcloud auth application-default print-access-token >/dev/null && echo "ADC OK"
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit --verbosity=debug backend --tag "$IMAGE" --timeout=1200s --quiet
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE" --quiet
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit --project=${{ env.PROJECT_ID }} --verbosity=debug backend --tag "$IMAGE" --timeout=1200s --quiet
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy --project=${{ env.PROJECT_ID }} --verbosity=debug "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE" --quiet
