@@ -45,8 +45,8 @@ jobs:
       - name: Build & Push image
         run: |
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          docker build -t "$IMAGE" backend
-          docker push "$IMAGE"
+          gcloud builds submit backend --tag "$IMAGE"
+          # docker push "$IMAGE" (usado Cloud Build)
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
       - name: Deploy to Cloud Run
@@ -79,8 +79,8 @@ jobs:
 
       - run: |
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          docker build -t "$IMAGE" backend
-          docker push "$IMAGE"
+          gcloud builds submit backend --tag "$IMAGE"
+          # docker push "$IMAGE" (usado Cloud Build)
           gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" \
             --image="$IMAGE" --region="${{ env.REGION }}" --platform=managed \
             --allow-unauthenticated --service-account="${{ env.RUNTIME_SA }}" \
