@@ -16,8 +16,6 @@ env:
   RUNTIME_SA: rcv-api-sa@rcvprod.iam.gserviceaccount.com
   WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-
-  # App env vars / secrets ya existentes en GCP
   ENVVARS: NODE_ENV=production,DB_ENGINE=postgres,PGHOST=10.168.0.3,PGPORT=5432,PGDATABASE=rcvdb,PGUSER=rcvapp,FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io
   SECRETS_MAP: JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest
   CONNECTOR: rcv-conn
