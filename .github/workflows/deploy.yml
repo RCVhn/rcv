@@ -1,12 +1,6 @@
-name: CI/CD to Cloud Run
-
-on:
-  push:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
-  id-token: write
+name: Deploy to Cloud Run
+on: { push: { branches: [ "main" ] } }
+permissions: { contents: read, id-token: write }
 
 env:
   PROJECT_ID: rcvprod
@@ -16,75 +10,25 @@ env:
   RUNTIME_SA: rcv-api-sa@rcvprod.iam.gserviceaccount.com
   WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-  ENVVARS: NODE_ENV=production,DB_ENGINE=postgres,PGHOST=10.168.0.3,PGPORT=5432,PGDATABASE=rcvdb,PGUSER=rcvapp,FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io
-  SECRETS_MAP: JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest
-  CONNECTOR: rcv-conn
 
 jobs:
-  build-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Auth to Google Cloud (OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.DEPLOY_SA }}
-          create_credentials_file: true
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v2
-      - run: gcloud config set project ${{ env.PROJECT_ID }}
-      - run: gcloud info && gcloud auth list && gcloud --version
-
-      - name: Auth Docker to Artifact Registry
-      - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
-
-      - name: Build & Push image
-        run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          gcloud builds submit backend --tag "$IMAGE"
-          # docker push "$IMAGE" (usado Cloud Build)
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" \
-            --image="$IMAGE" \
-            --region="${{ env.REGION }}" --platform=managed \
-            --allow-unauthenticated \
-            --service-account="${{ env.RUNTIME_SA }}" \
-            --set-env-vars="${{ env.ENVVARS }}" \
-            --set-secrets="${{ env.SECRETS_MAP }}" \
-            --vpc-connector="${{ env.CONNECTOR }}" \
-            --vpc-egress=private-ranges-only \
-            --min-instances=1 --max-instances=50 --concurrency=80 \
-            --cpu=1 --memory=512Mi --timeout=60
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.DEPLOY_SA }}
-          create_credentials_file: true
-
-      - uses: google-github-actions/setup-gcloud@v2
-      - run: gcloud config set project ${{ env.PROJECT_ID }}
-      - run: gcloud info && gcloud auth list && gcloud --version
-
-      - run: gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev
-
-      - run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          gcloud builds submit backend --tag "$IMAGE"
-          # docker push "$IMAGE" (usado Cloud Build)
-          gcloud run deploy --verbosity=debug "${{ env.SERVICE }}" \
-            --image="$IMAGE" --region="${{ env.REGION }}" --platform=managed \
-            --allow-unauthenticated --service-account="${{ env.RUNTIME_SA }}" \
-            --set-env-vars="${{ env.ENVVARS }}" --set-secrets="${{ env.SECRETS_MAP }}" \
-            --vpc-connector="${{ env.CONNECTOR }}" --vpc-egress=private-ranges-only \
-            --min-instances=1 --max-instances=50 --concurrency=80 \
-            --cpu=1 --memory=512Mi --timeout=60
+    - uses: actions/checkout@v4
+    - uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.DEPLOY_SA }}
+        create_credentials_file: true
+    - uses: google-github-actions/setup-gcloud@v2
+    - run: gcloud config set project ${{ env.PROJECT_ID }}
+    - run: gcloud builds submit backend --tag "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}" --timeout=1200s
+    - run: |
+        IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
+        gcloud run deploy "${{ env.SERVICE }}" --image="$IMAGE" --region="${{ env.REGION }}" \
+          --allow-unauthenticated --service-account="${{ env.RUNTIME_SA }}" \
+          --set-env-vars="NODE_ENV=production,DB_ENGINE=postgres,PGHOST=10.168.0.3,PGPORT=5432,PGDATABASE=rcvdb,PGUSER=rcvapp,FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io" \
+          --set-secrets="JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest" \
+          --vpc-connector="rcv-conn" --vpc-egress=private-ranges-only \
+          --min-instances=1 --max-instances=50 --concurrency=80 --cpu=1 --memory=512Mi --timeout=60
