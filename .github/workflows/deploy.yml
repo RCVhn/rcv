@@ -7,7 +7,6 @@ env:
   REGION: us-central1
   AR_REPO: rcv-api
   SERVICE: rcv-api
-  RUNTIME_SA: rcv-api-sa@rcvprod.iam.gserviceaccount.com
   WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
 
@@ -23,12 +22,5 @@ jobs:
         create_credentials_file: true
     - uses: google-github-actions/setup-gcloud@v2
     - run: gcloud config set project ${{ env.PROJECT_ID }}
-    - run: gcloud builds submit backend --tag "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}" --timeout=1200s
-    - run: |
-        IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-        gcloud run deploy "${{ env.SERVICE }}" --image="$IMAGE" --region="${{ env.REGION }}" \
-          --allow-unauthenticated --service-account="${{ env.RUNTIME_SA }}" \
-          --set-env-vars="NODE_ENV=production,DB_ENGINE=postgres,PGHOST=10.168.0.3,PGPORT=5432,PGDATABASE=rcvdb,PGUSER=rcvapp,FORCE_ADMIN_RESET=0,CORS_ORIGIN=https://rcvhn.github.io" \
-          --set-secrets="JWT_SECRET=JWT_SECRET:latest,PGPASSWORD=PGPASSWORD:latest" \
-          --vpc-connector="rcv-conn" --vpc-egress=private-ranges-only \
-          --min-instances=1 --max-instances=50 --concurrency=80 --cpu=1 --memory=512Mi --timeout=60
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE"
