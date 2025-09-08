@@ -19,9 +19,9 @@ jobs:
         service_account: ${{ env.DEPLOY_SA }}
         create_credentials_file: true
     - uses: google-github-actions/setup-gcloud@v2
-    - run: gcloud config set project ${{ env.PROJECT_ID }}
     - run: |
-        REG=${{ env.REGION }}; PROJ=${{ env.PROJECT_ID }}; REPO=${{ env.AR }}
+        REG=${{ env.REGION }}; PROJ=${{ env.PROJECT_ID }}; REPO=${{ env.AR }}; SVC=${{ env.SVC }}
         IMG="$REG-docker.pkg.dev/$PROJ/$REPO/rcv-api:${{ github.sha }}"
-         gcloud builds submit backend --tag "$IMG" --timeout=1200s
-        gcloud run deploy "${{ env.SVC }}" --region "$REG" --image "$IMG" --service-account "rcv-api-sa@$PROJ.iam.gserviceaccount.com"
+        gcloud config set project "$PROJ"
+        gcloud builds submit backend --tag "$IMG" --timeout=1200s
+        gcloud run deploy "$SVC" --region "$REG" --image "$IMG" --service-account "rcv-api-sa@$PROJ.iam.gserviceaccount.com"
