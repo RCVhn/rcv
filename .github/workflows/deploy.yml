@@ -1,6 +1,7 @@
 name: Deploy to Cloud Run
 on: { push: { branches: [ "main" ] } }
 permissions: { contents: read, id-token: write }
+
 env:
   PROJECT_ID: rcvprod
   REGION: us-central1
@@ -8,6 +9,7 @@ env:
   SERVICE: rcv-api
   WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -18,12 +20,7 @@ jobs:
         workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ env.DEPLOY_SA }}
         create_credentials_file: true
-    - run: echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$GOOGLE_APPLICATION_CREDENTIALS" >> $GITHUB_ENV
     - uses: google-github-actions/setup-gcloud@v2
-    - run: gcloud info && gcloud auth list && gcloud config get-value project
-    - run: gcloud info && gcloud auth list && echo "ADC=$GOOGLE_APPLICATION_CREDENTIALS"
     - run: gcloud config set project ${{ env.PROJECT_ID }}
-    - run: ls -la && ls -la backend || true
-    - run: gcloud auth application-default print-access-token >/dev/null && echo "ADC OK"
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit --project=${{ env.PROJECT_ID }} --service-account=${{ env.DEPLOY_SA }} --gcs-source-staging-dir=gs://rcvprod-cb-us-central1-571719403185/source --gcs-log-dir=gs://rcvprod-cb-us-central1-571719403185/logs --project=${{ env.PROJECT_ID }} --verbosity=debug backend --tag "$IMAGE" --timeout=1200s
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy --project=${{ env.PROJECT_ID }} --verbosity=debug "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE"
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
+    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE" --service-account="rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
