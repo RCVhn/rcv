@@ -1,36 +1,27 @@
-name: Deploy to Cloud Run
-on: { push: { branches: [ "main" ] } }
+name: Deploy
+on: { push: { branches: [main] } }
 permissions: { contents: read, id-token: write }
-
 env:
   PROJECT_ID: rcvprod
   REGION: us-central1
-  AR_REPO: rcv-api
-  SERVICE: rcv-api
-  WORKLOAD_IDENTITY_PROVIDER: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
+  AR: rcv-api
+  SVC: rcv-api
+  WIP: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
   DEPLOY_SA: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-
 jobs:
-  deploy:
+  d:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.DEPLOY_SA }}
-          create_credentials_file: true
-
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - run: gcloud config set project ${{ env.PROJECT_ID }}
-
-      - name: Set IMAGE
-        run: echo "IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}" >> $GITHUB_ENV
-
-      - name: Build (Cloud Build)
-        run: gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
-
-      - name: Deploy (Cloud Run)
-        run: gcloud run deploy "${{ env.SERVICE }}" --region "${{ env.REGION }}" --image "$IMAGE" --service-account "rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+    - uses: actions/checkout@v4
+    - uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ env.WIP }}
+        service_account: ${{ env.DEPLOY_SA }}
+        create_credentials_file: true
+    - uses: google-github-actions/setup-gcloud@v2
+    - run: gcloud config set project ${{ env.PROJECT_ID }}
+    - run: |
+        REG=${{ env.REGION }}; PROJ=${{ env.PROJECT_ID }}; REPO=${{ env.AR }}
+        IMG="$REG-docker.pkg.dev/$PROJ/$REPO/rcv-api:${{ github.sha }}"
+         gcloud builds submit backend --tag "$IMG" --timeout=1200s
+        gcloud run deploy "${{ env.SVC }}" --region "$REG" --image "$IMG" --service-account "rcv-api-sa@$PROJ.iam.gserviceaccount.com"
