@@ -24,21 +24,13 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: gcloud context
-        run: |
-          gcloud config set project ${{ env.PROJECT_ID }}
-          gcloud info | head -n 20
-          gcloud auth list
+      - run: gcloud config set project ${{ env.PROJECT_ID }}
+
+      - name: Set IMAGE
+        run: echo "IMAGE=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Build (Cloud Build)
-        run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
+        run: gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
 
       - name: Deploy (Cloud Run)
-        run: |
-          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
-          gcloud run deploy "${{ env.SERVICE }}" \
-            --region="${{ env.REGION }}" \
-            --image="$IMAGE" \
-            --service-account="rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+        run: gcloud run deploy "${{ env.SERVICE }}" --region "${{ env.REGION }}" --image "$IMAGE" --service-account "rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
