@@ -14,13 +14,31 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: google-github-actions/auth@v2
-      with:
-        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ env.DEPLOY_SA }}
-        create_credentials_file: true
-    - uses: google-github-actions/setup-gcloud@v2
-    - run: gcloud config set project ${{ env.PROJECT_ID }}
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
-    - run: IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"; gcloud run deploy "${{ env.SERVICE }}" --region="${{ env.REGION }}" --image="$IMAGE" --service-account="rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
+          create_credentials_file: true
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: gcloud context
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
+          gcloud info | head -n 20
+          gcloud auth list
+
+      - name: Build (Cloud Build)
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
+          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
+
+      - name: Deploy (Cloud Run)
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/rcv-api:${{ github.sha }}"
+          gcloud run deploy "${{ env.SERVICE }}" \
+            --region="${{ env.REGION }}" \
+            --image="$IMAGE" \
+            --service-account="rcv-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com"
