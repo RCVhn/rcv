@@ -12,15 +12,15 @@ jobs:
           workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
           service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
           create_credentials_file: true
-
       - uses: google-github-actions/setup-gcloud@v2
-      - run: gcloud info && gcloud auth list && gcloud config set project rcvprod
       - name: Build
         run: |
+          set -euxo pipefail
           IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${{ github.sha }}"
-          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --verbosity=debug
+          gcloud builds submit backend --project=rcvprod --tag "$IMAGE" --timeout=1200s
       - name: Deploy
         run: |
+          set -euxo pipefail
           IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${{ github.sha }}"
-          gcloud run deploy rcv-api --region us-central1 --image "$IMAGE" \
-            --service-account "rcv-api-sa@rcvprod.iam.gserviceaccount.com" --verbosity=debug
+          gcloud run deploy rcv-api --project=rcvprod --region=us-central1 --image "$IMAGE" \
+            --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com
