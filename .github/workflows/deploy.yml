@@ -1,8 +1,7 @@
 name: Deploy
 on: { push: { branches: [main] } }
 permissions: { contents: read, id-token: write }
-
-jobs:
+jabs:
   d:
     runs-on: ubuntu-latest
     steps:
@@ -13,7 +12,8 @@ jobs:
         service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
         create_credentials_file: true
     - uses: google-github-actions/setup-gcloud@v2
+    - run: gcloud config set project rcvprod
     - run: |
-        IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${{ github.sha }}"
+        IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${ github.sha }"
         gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
         gcloud run deploy rcv-api --region us-central1 --image "$IMAGE" --service-account "rcv-api-sa@rcvprod.iam.gserviceaccount.com"
