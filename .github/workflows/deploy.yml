@@ -32,3 +32,7 @@ jobs:
             --image "${IMAGE}" \
             --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
             --quiet
+          # sanity check: Cloud Run debe quedar exactamente en ${IMAGE}
+          gcloud run services describe rcv-api \
+            --project rcvprod --region us-central1 \
+            --format="value(spec.template.spec.containers[0].image)" | grep -q "${IMAGE}"
