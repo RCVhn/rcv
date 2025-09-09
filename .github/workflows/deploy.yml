@@ -1,6 +1,11 @@
 name: Deploy
-on: { push: { branches: [main] } }
-permissions: { contents: read, id-token: write }
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   d:
@@ -16,41 +21,94 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build (async + poll, sin stream de logs)
-        shell: bash
+      - name: Build (async + poll)
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
           set -euo pipefail
           gcloud config set project rcvprod
+
           IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
-          BUILD_ID=$(gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --async --format='value(id)')
-          echo "Build ID: $BUILD_ID"
+          echo "IMAGE=$IMAGE"
+
+          BID=$(gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --async --format='value(id)')
+          test -n "$BID"
+          echo "BUILD_ID=$BID"
+
           while :; do
-            S=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
+            S=$(gcloud builds describe "$BID" --project rcvprod --format='value(status)')
             echo "CB_STATUS=$S"
             [[ "$S" =~ ^(SUCCESS|FAILURE|CANCELLED|TIMEOUT|INTERNAL_ERROR)$ ]] && break
             sleep 3
           done
+
           test "$S" = SUCCESS
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
 
-      - name: Deploy
-        shell: bash
+      - name: Deploy + Canary + Healthcheck
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+          HEALTH_PATH: /api/health
+          PROJECT_ID: rcvprod
+          REGION: us-central1
+          SERVICE: rcv-api
         run: |
           set -euo pipefail
-          gcloud run deploy rcv-api \
-            --project rcvprod --region us-central1 \
-            --image "$IMAGE" \
-            --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
-            --quiet
+          : "${IMAGE:?IMAGE not set from Build step}"
 
-      - name: Verify image
-        shell: bash
-        run: |
-          ACTUAL=$(gcloud run services describe rcv-api --project rcvprod --region us-central1 \
-            --format="value(spec.template.spec.containers[0].image)")
-          echo "Actual: $ACTUAL"
+          # Previous ready revision (may be empty on first deploy)
+          PREV=$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(status.latestReadyRevisionName)') || PREV=""
+
+          # Deploy new revision without shifting traffic
+          gcloud run deploy "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --image "$IMAGE" --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
+            --no-traffic --quiet
+
+          # Newest revision name
+          NEW=$(gcloud run revisions list --service "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(metadata.name)' --sort-by=~metadata.creationTimestamp | head -n1)
+          echo "NEW_REVISION=$NEW"
+          test -n "$NEW"
+
+          # Traffic split 10% NEW / 90% PREV (or 10% NEW if no PREV)
+          if [[ -n "$PREV" ]]; then
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+              --to-revisions "$NEW=10",$PREV=90
+          else
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+              --to-revisions "$NEW=10"
+          fi
+
+          URL=$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --format='value(status.url)')
+          echo "Service URL: $URL"
+
+          # Health check on the known-good path
+          ok=""
+          for i in {1..20}; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL$HEALTH_PATH")
+            echo "Health $HEALTH_PATH -> HTTP $CODE"
+            [[ "$CODE" =~ ^2|3 ]] && ok=1 && break || sleep 3
+          done
+
+          if [[ "$ok" = "1" ]]; then
+            # Promote to 100%
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+              --to-revisions "$NEW=100"
+            echo "Promoted $NEW to 100% traffic."
+          else
+            # Rollback completely
+            if [[ -n "$PREV" ]]; then
+              gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+                --to-revisions "$PREV=100"
+              echo "Rollback to 100%: $PREV (health check $HEALTH_PATH failed)."
+            fi
+            exit 1
+          fi
+
+          # Verify effective image
+          ACTUAL=$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(spec.template.spec.containers[0].image)')
+          echo "Effective image: $ACTUAL"
           test "$ACTUAL" = "$IMAGE"
+
