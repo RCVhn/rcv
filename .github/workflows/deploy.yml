@@ -16,7 +16,8 @@ jobs:
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -euo pipefail
+          set -euxo pipefail
+          echo "GITHUB_ENV=$GITHUB_ENV" && ls -l $(dirname "$GITHUB_ENV")
           gcloud config set project rcvprod
           IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
           echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
@@ -25,7 +26,8 @@ jobs:
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -euo pipefail
+          set -euxo pipefail
+          echo "GITHUB_ENV=$GITHUB_ENV" && ls -l $(dirname "$GITHUB_ENV")
           gcloud run deploy rcv-api --project rcvprod --region us-central1 \
             --image "$IMAGE" \
             --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
