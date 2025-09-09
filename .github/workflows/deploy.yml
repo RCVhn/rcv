@@ -12,32 +12,34 @@ jobs:
           service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
           create_credentials_file: true
       - uses: google-github-actions/setup-gcloud@v2
+      - name: Debug auth
+        run: |
+          gcloud --version
+          gcloud auth list
+          gcloud config list
       - id: build
         name: Build
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -euo pipefail
+          set -e
           gcloud config set project rcvprod
-          IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
-          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --verbosity=debug
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          IMG="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
+          gcloud builds submit backend --tag "$IMG" --timeout=1200s
+          echo "image=$IMG" >> "$GITHUB_OUTPUT"
       - name: Deploy
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -euo pipefail
+          set -e
           gcloud run deploy rcv-api --project rcvprod --region us-central1 \
             --image "${{ steps.build.outputs.image }}" \
             --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
-            --quiet --verbosity=debug
-          # sanity check: imprime la imagen efectiva
-          gcloud run services describe rcv-api --project rcvprod --region us-central1 \
-            --format="value(spec.template.spec.containers[0].image)"
-      - name: Debug auth
+            --quiet
+      - name: Verify
         run: |
-          set -x
-          gcloud --version
-          gcloud info
-          gcloud auth list
-          gcloud config list
+          set -e
+          ACTUAL=$(gcloud run services describe rcv-api --project rcvprod --region us-central1 \
+            --format="value(spec.template.spec.containers[0].image)")
+          echo "Actual: $ACTUAL"
+          test "$ACTUAL" = "${{ steps.build.outputs.image }}"
