@@ -12,34 +12,27 @@ jobs:
           service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
           create_credentials_file: true
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Debug auth
-        run: |
-          gcloud --version
-          gcloud auth list
-          gcloud config list
-      - id: build
-        name: Build
+      - name: Build
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -e
+          set -euo pipefail
           gcloud config set project rcvprod
-          IMG="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
-          gcloud builds submit backend --tag "$IMG" --timeout=1200s
-          echo "image=$IMG" >> "$GITHUB_OUTPUT"
+          IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
       - name: Deploy
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
-          set -e
+          set -euo pipefail
           gcloud run deploy rcv-api --project rcvprod --region us-central1 \
-            --image "${{ steps.build.outputs.image }}" \
+            --image "$IMAGE" \
             --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
             --quiet
       - name: Verify
         run: |
-          set -e
           ACTUAL=$(gcloud run services describe rcv-api --project rcvprod --region us-central1 \
             --format="value(spec.template.spec.containers[0].image)")
           echo "Actual: $ACTUAL"
-          test "$ACTUAL" = "${{ steps.build.outputs.image }}"
+          test "$ACTUAL" = "$IMAGE"
