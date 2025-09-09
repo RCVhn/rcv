@@ -13,6 +13,15 @@ jobs:
           create_credentials_file: true
       - uses: google-github-actions/setup-gcloud@v2
       - name: Build
+        run: |
+          set -euxo pipefail
+          echo "GITHUB_ENV=$GITHUB_ENV" && ls -l $(dirname "$GITHUB_ENV")
+          echo "Repo layout:" && pwd && ls -la && echo "backend layout:" && ls -la backend
+          gcloud config set project rcvprod
+          IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --verbosity=debug
+        shell: bash
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
         run: |
