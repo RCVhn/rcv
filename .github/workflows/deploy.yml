@@ -34,3 +34,10 @@ jobs:
           # sanity check: imprime la imagen efectiva
           gcloud run services describe rcv-api --project rcvprod --region us-central1 \
             --format="value(spec.template.spec.containers[0].image)"
+      - name: Debug auth
+        run: |
+          set -x
+          gcloud --version
+          gcloud info
+          gcloud auth list
+          gcloud config list
