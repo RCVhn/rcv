@@ -5,23 +5,30 @@ jobs:
   d:
     runs-on: ubuntu-latest
     steps:
-      .- uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
           service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
           create_credentials_file: true
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Build & Deploy
+      - name: Build
         env:
           CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
           IMAGE: us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${{ github.sha }}
         run: |
           set -euxo pipefail
           gcloud config set project rcvprod
-          gloud builds submit backend --tag "$IMAGE" --timeout=1200s --verbosity=debug
-          gloud run deploy rcv-api --project rcvprod --region us-central1 --image "$IMAGE" \
-            --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com --quiet
-          echo "Deployed: "
+          gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --verbosity=debug
+      - name: Deploy
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+          IMAGE: us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${{ github.sha }}
+        run: |
+          set -euxo pipefail
+          gcloud run deploy rcv-api --project rcvprod --region us-central1 \
+            --image "$IMAGE" \
+            --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
+            --quiet --verbosity=debug
           gcloud run services describe rcv-api --project rcvprod --region us-central1 \
             --format="value(spec.template.spec.containers[0].image)"
