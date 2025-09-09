@@ -5,20 +5,21 @@ jobs:
   d:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: google-github-actions/auth@v2
-      with:
-        workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
-        service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-        create_credentials_file: true
-    - uses: google-github-actions/setup-gcloud@v2
-    - name: Build + Deploy
-      env:
-        CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
-      run: |
-        set -euo pipefail
-        gcloud config set project rcvprod
-        IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
-        gcloud builds submit backend --tag "$IMAGE" --timeout=1200s
-        gcloud run deploy rcv-api --region us-central1 --image "$IMAGE" --service-account "rcv-api-sa@rcvprod.iam.gserviceaccount.com" --quiet
-        gcloud run services describe rcv-api --region us-central1 --format="value(spec.template.spec.containers[0].image)"
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
+          service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
+          create_credentials_file: true
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build + Deploy
+        env: { CLOUDSDK_CORE_DISABLE_PROMPTS: "1" }
+        run: |
+          set -euo pipefail
+          gloud config set project rcvprod
+          IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
+          gloud builds submit backend --tag "$IMAGE" --timeout=1200s
+          gloud run deploy rcv-api --region us-central1 --image "$IMAGE" \
+              --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com --quiet
+          gcloud run services describe rcv-api --region us-central1 \
+              --format="value(spec.template.spec.containers[0].image)"
