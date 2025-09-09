@@ -1,28 +1,56 @@
 name: Deploy
 on: { push: { branches: [main] } }
 permissions: { contents: read, id-token: write }
+
 jobs:
   d:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: google-github-actions/auth@v2
-      with:
-        workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
-        service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
-        create_credentials_file: true
-    - uses: google-github-actions/setup-gcloud@v2
-    - name: Build (async, no log stream)
-      run: |
-        set -euuo pipefaile
-        gcloud config set project rcvprod
-        MAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
-        BUILD_ID=$(gcloud builds submit backend --tag "$MAGE" --timeout=1200s --async --format='value(id)')
-        while ::#; do S=$(gcloud builds describe "$BUILD_ID" --format='value(status)'); echo "CB=$S"; [[ "$S" =~ ^(SUCCESS|FAILURE|CANCELLED|TIMEOUT|INTERNAL_ERROR)$ ]] && break; sleep 3;done
-        test "$S" = "SUCCESS"
-        echo "IMAGE=$MAGE" >> "$GITHUB_ENV"
-    - name: Deploy
-      run: |
-        set -euo pipefaile
-        gcloud run deploy rcv-api --project rcvprod --region us-central1 --image "$MAGE" --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com --quiet
-        gcloud run services describe rcv-api --project rcvprod --region us-central1 --format="value(spec.template.spec.containers[0].image)"
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/571719403185/locations/global/workloadIdentityPools/github-pool/providers/github-rcv
+          service_account: rcv-deployer-sa@rcvprod.iam.gserviceaccount.com
+          create_credentials_file: true
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build (async + poll, sin stream de logs)
+        shell: bash
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+        run: |
+          set -euo pipefail
+          gcloud config set project rcvprod
+          IMAGE="us-central1-docker.pkg.dev/rcvprod/rcv-api/rcv-api:${GITHUB_SHA}"
+          BUILD_ID=$(gcloud builds submit backend --tag "$IMAGE" --timeout=1200s --async --format='value(id)')
+          echo "Build ID: $BUILD_ID"
+          while :; do
+            S=$(gcloud builds describe "$BUILD_ID" --format='value(status)')
+            echo "CB_STATUS=$S"
+            [[ "$S" =~ ^(SUCCESS|FAILURE|CANCELLED|TIMEOUT|INTERNAL_ERROR)$ ]] && break
+            sleep 3
+          done
+          test "$S" = SUCCESS
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Deploy
+        shell: bash
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+        run: |
+          set -euo pipefail
+          gcloud run deploy rcv-api \
+            --project rcvprod --region us-central1 \
+            --image "$IMAGE" \
+            --service-account rcv-api-sa@rcvprod.iam.gserviceaccount.com \
+            --quiet
+
+      - name: Verify image
+        shell: bash
+        run: |
+          ACTUAL=$(gcloud run services describe rcv-api --project rcvprod --region us-central1 \
+            --format="value(spec.template.spec.containers[0].image)")
+          echo "Actual: $ACTUAL"
+          test "$ACTUAL" = "$IMAGE"
