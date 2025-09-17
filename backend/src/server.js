@@ -12,20 +12,27 @@ const PORT = process.env.PORT || 8080;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 /* -------- CORS -------- */
-const allowedOrigins = [
-  "https://fernandochavarria2208-lab.github.io",
-];
+const allowedOrigins = new Set([
+  "https://rcvhn.github.io",                      // GitHub Pages (actual)
+  "https://fernandochavarria2208-lab.github.io",  // legacy (por si aún lo usas)
+]);
+
 const corsOptions = {
   origin(origin, cb) {
-    if (!origin) return cb(null, true);            // curl/Postman
-    if (origin === "null") return cb(null, true);  // file://
+    // Permitir sin Origin (curl/Postman) o file://
+    if (!origin || origin === "null") return cb(null, true);
 
+    // Permitir localhost en no-producción
     if (NODE_ENV !== "production") {
       const isLocal = /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(origin);
       if (isLocal) return cb(null, true);
     }
-    if (allowedOrigins.includes(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS: " + origin));
+
+    // Permitir los orígenes whitelisted
+    if (allowedOrigins.has(origin)) return cb(null, true);
+
+    // No lanzar error: simplemente no aplicar CORS (el browser bloqueará si es cross-origin)
+    return cb(null, false);
   },
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
