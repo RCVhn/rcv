@@ -1,9 +1,16 @@
 "use strict";
 
-// Base de API: toma lo que puso env.js; si no existe, usa Cloud Run.
-const API_BASE =
-  (localStorage.getItem("API_BASE") || "").trim() ||
-  "https://rcv-api-nulp72qabq-uc.a.run.app/api";
+/* ========= Descubrimiento de API_BASE =========
+   Orden de prioridad:
+   1) localStorage.API_BASE
+   2) <meta name="rcv-api" content="...">
+   3) fallback de Cloud Run
+*/
+const META_API = (document.querySelector('meta[name="rcv-api"]')?.content || "").trim();
+const LS_API   = (localStorage.getItem("API_BASE") || "").trim();
+
+const API_BASE = (LS_API || META_API || "https://rcv-api-nulp72qabq-uc.a.run.app/api")
+  .replace(/\/+$/, ""); // sin slash final
 
 // === Auth token (JWT) ===
 let authToken =
@@ -29,25 +36,27 @@ function getActor() {
   }
 }
 
-// Core fetch (con timeout y soporte FormData/Blob)
+/* ========= Core fetch (timeout, JSON, token refresh, headers X-Actor) ========= */
 async function apiFetch(
   path,
   { method = "GET", body, headers = {}, timeoutMs = 12000 } = {}
 ) {
+  const isAbsolute = /^https?:\/\//i.test(path);
+  const normPath = isAbsolute ? path : API_BASE + (String(path).startsWith("/") ? path : "/" + path);
+
   const h = {
     Accept: "application/json",
     ...headers,
   };
 
-  const isAbsolute = /^https?:\/\//i.test(path);
-  const url = isAbsolute ? path : `${API_BASE}${path}`;
-
+  // Token (si existe)
   const token =
     authToken ||
     localStorage.getItem("authToken") ||
     localStorage.getItem("token");
   if (token) h["Authorization"] = `Bearer ${token}`;
 
+  // Actores
   let actorNombre = "sistema";
   let actorRol = "usuario";
   try {
@@ -58,7 +67,9 @@ async function apiFetch(
   h["X-Actor"] = actorNombre;
   h["X-Actor-Usuario"] = actorNombre;
   h["X-Actor-Rol"] = actorRol;
+  h["X-Requested-With"] = h["X-Requested-With"] || "fetch";
 
+  // Tipado de body (JSON por defecto salvo FormData/Blob/ArrayBuffer)
   const isFormLike =
     (typeof FormData !== "undefined" && body instanceof FormData) ||
     (typeof Blob !== "undefined" && body instanceof Blob) ||
@@ -76,18 +87,20 @@ async function apiFetch(
       ? body
       : JSON.stringify(body);
 
+  // Timeout
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 
   let res;
   try {
-    res = await fetch(url, {
+    res = await fetch(normPath, {
       method,
       headers: h,
-      body: payload,
       mode: "cors",
-      credentials: "omit",
+      credentials: "omit", // usamos JWT, no cookies
+      body: payload,
       signal: ctrl.signal,
+      cache: "no-store",
     });
   } catch (netErr) {
     clearTimeout(timer);
@@ -99,34 +112,38 @@ async function apiFetch(
     clearTimeout(timer);
   }
 
+  // Token refresh por header (servidor expone x-token-refresh)
+  const refresh = res.headers.get("x-token-refresh") || res.headers.get("X-Token-Refresh");
+  if (refresh) setAuthToken(refresh);
+
+  // Parse de respuesta
   const text = await res.text();
   const contentType = (res.headers.get("Content-Type") || "").toLowerCase();
   let data;
   if (!text) {
     data = {};
   } else if (contentType.includes("application/json")) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
   } else {
     data = text;
   }
 
   if (!res.ok) {
-    const msgFromBody = (data && (data.error || data.message)) || null;
-    const msg = msgFromBody || `Error ${res.status} en ${path}`;
-    throw new Error(msg);
+    const msgFromBody =
+      (data && (data.error || data.message || data.msg)) || null;
+    const msg = msgFromBody || `Error ${res.status} ${res.statusText || ""}`.trim();
+    const err = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
 
-  if (typeof data === "string" && !contentType.includes("application/json")) {
-    return { raw: data };
-  }
-  return data;
+  return typeof data === "string" && !contentType.includes("application/json")
+    ? { raw: data }
+    : data;
 }
 
-// === API: Auth ===
+/* ========= API: Auth ========= */
 const AuthAPI = {
   async login(usuario, password) {
     const out = await apiFetch("/auth/login", {
@@ -151,10 +168,11 @@ const AuthAPI = {
   },
   logout() {
     setAuthToken(null);
+    localStorage.removeItem("usuarioActual");
   },
 };
 
-// === API: Usuarios ===
+/* ========= API: Usuarios ========= */
 const UsuariosAPI = {
   listar(q = "") {
     return apiFetch(`/usuarios${q ? `?q=${encodeURIComponent(q)}` : ""}`);
@@ -183,7 +201,7 @@ const UsuariosAPI = {
   },
 };
 
-// === API: Bitácora ===
+/* ========= API: Bitácora ========= */
 const BitacoraAPI = {
   listar(usuario = "") {
     const qs = usuario ? `?usuario=${encodeURIComponent(usuario)}` : "";
@@ -191,5 +209,6 @@ const BitacoraAPI = {
   },
 };
 
-window.API = { AuthAPI, UsuariosAPI, BitacoraAPI, setAuthToken };
+/* ========= Exponer ========= */
 window.API_BASE = API_BASE;
+window.API = { AuthAPI, UsuariosAPI, BitacoraAPI, setAuthToken, apiFetch };
