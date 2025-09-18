@@ -1,4 +1,4 @@
-// frontend/js/usuarios-admin.js
+// === frontend/js/usuarios-admin.js — PARTE 1/2 ===
 (function () {
   'use strict';
 
@@ -12,23 +12,17 @@
   // ===== UI: Hooks a utilidades globales (sin estilos locales) =====
   function __stripTags(html){ try{ const d=document.createElement('div'); d.innerHTML=String(html||''); return d.textContent||d.innerText||'';}catch{return String(html||'');} }
   function showToast(message, type='info', title=''){
-    // Parche a prueba de firmas distintas y con fallback visual
     const T = String(type || 'info').toLowerCase();
     const M = String(message || '');
     const opts = title ? { title } : undefined;
-
     const count = ()=> document.querySelectorAll('.toast-container .toast').length;
     const before = count();
 
-    // 1) Preferir window.showToast (posibles firmas)
     try { if (typeof window.showToast === 'function') window.showToast(T, M, opts); } catch {}
     try { if (typeof window.showToast === 'function') window.showToast(M, T, title); } catch {}
-
-    // 2) Alternativo histórico
     try { if (typeof window.mostrarToast === 'function') window.mostrarToast(T, M, opts); } catch {}
     try { if (typeof window.mostrarToast === 'function') window.mostrarToast(M, T, title); } catch {}
 
-    // 3) Fallback mínimo: render directo con tus clases CSS
     setTimeout(() => {
       if (count() > before) return;
       let c = document.querySelector('.toast-container');
@@ -92,8 +86,8 @@
   function actorHeaders() {
     const u = sesionActual();
     const actor = u?.usuario || u?.nombre || 'sistema';
+    // No forzamos Content-Type en GET para evitar preflights innecesarios
     return {
-      'Content-Type': 'application/json',
       'X-Actor': actor,
       'X-Actor-Usuario': actor,
     };
@@ -109,25 +103,20 @@
       localStorage.getItem('jwt') ||
       localStorage.getItem('access_token');
 
+    // Construye headers correctamente
+    const headers = { ...(options.headers || {}), ...actorHeaders(), Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (options.body && !('Content-Type' in headers)) headers['Content-Type'] = 'application/json';
+
     const opts = {
       ...options,
       mode: 'cors',
-      headers: {
-        ...(options.headers || {}),
-        ...actorHeaders(),
-        // 🔐 Agrega Authorization si hay token
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        Accept: 'application/json',
-        'Content-Type':
-          (options.body && 'application/json') ||
-          (options.headers && options.headers['Content-Type']) ||
-          undefined
-      },
-      credentials: 'omit', // usa 'include' solo si tu API maneja cookies/sesión
+      headers,
+      credentials: 'omit',
     };
     const res = await fetch(url, opts);
     let data = null;
-    try { data = await res.json(); } catch { /* puede venir vacío o HTML */ }
+    try { data = await res.json(); } catch {}
     if (!res.ok) {
       console.warn('[apiFetch] ERROR', {
         url,
@@ -227,11 +216,10 @@
   // ✅ Email helpers
   function isValidEmail(email) {
     const s = String(email || '').trim();
-    // Sencilla y efectiva para UI (el backend también valida)
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
   }
 
-  // Helper de creación de nodos (para paginación/skeleton)
+  // Helper de creación de nodos
   function __create(el, attrs={}, children=[]){
     const n = document.createElement(el);
     Object.entries(attrs||{}).forEach(([k,v])=>{
@@ -245,20 +233,12 @@
     return n;
   }
 
-  // ===== Branding / metadatos para exportar/imprimir =====
-  const BRAND = {
-    nombre: 'Taller RCV',
-    logo: 'img/logo.png',
-  };
-  function nowStr() {
-    const d = new Date();
-    return d.toLocaleString();
-  }
+  // ===== Branding / metadatos
+  const BRAND = { nombre: 'Taller RCV', logo: 'img/logo.png' };
+  function nowStr() { return new Date().toLocaleString(); }
   function actorNombre() {
-    try {
-      const u = JSON.parse(localStorage.getItem('usuarioActual')) || {};
-      return u.usuario || u.nombre || 'sistema';
-    } catch { return 'sistema'; }
+    try { const u = JSON.parse(localStorage.getItem('usuarioActual')) || {}; return u.usuario || u.nombre || 'sistema'; }
+    catch { return 'sistema'; }
   }
   function headerHTML(titulo){
     return `
@@ -281,20 +261,11 @@
   const pagUsuarios = { ...PAG_DEFAULT };
   const pagBitacora = { ...PAG_DEFAULT };
 
-  // ===== Páginas personalizadas (se guardan en localStorage) =====
+  // ===== Páginas personalizadas =====
   const PAGES_STORE_KEY = 'app_pages';
-  function loadCustomPages() {
-    try { return JSON.parse(localStorage.getItem(PAGES_STORE_KEY)) || []; }
-    catch { return []; }
-  }
-  function saveCustomPages(arr) {
-    localStorage.setItem(PAGES_STORE_KEY, JSON.stringify(arr));
-  }
-  function normalizeSlug(s) {
-    return String(s||'').trim().toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9_-]/g, '');
-  }
+  function loadCustomPages() { try { return JSON.parse(localStorage.getItem(PAGES_STORE_KEY)) || []; } catch { return []; } }
+  function saveCustomPages(arr) { localStorage.setItem(PAGES_STORE_KEY, JSON.stringify(arr)); }
+  function normalizeSlug(s) { return String(s||'').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, ''); }
 
   // --- DOM refs ---
   const tbody = document.querySelector('#tablaUsuarios tbody');
@@ -312,7 +283,7 @@
   const btnExportBitacoraCsv = $('#btnExportBitacoraCsv');
   const btnGuardarEdit = formEditar ? formEditar.querySelector('[type="submit"]') : null;
 
-  // === Filtros Bitácora (se inyectan si no existen) ===
+  // === Filtros Bitácora ===
   function ensureBitFilters(){
     const table = document.getElementById('tablaBitacora');
     if (!table) return;
@@ -374,7 +345,7 @@
   window.getUsuarios = () => listaUsuarios;
   window.getBitacora = () => listaBitacora;
 
-  // ====== PERMISOS (globales separados) ======
+  // ====== PERMISOS ======
   const FIXED_PERMS = [
     { key: 'action:view',   label: 'Ver registros' },
     { key: 'action:create', label: 'Crear registros' },
@@ -384,7 +355,7 @@
     { key: 'usuarios:admin', label: 'Administrar Usuarios' },
   ];
 
-  // === Plantillas de roles (para aplicar checks rápidos) ===
+  // === Plantillas de roles ===
   const ROLE_TEMPLATES = {
     administrador: [
       'usuarios:admin','bitacora:leer',
@@ -681,19 +652,22 @@
                          : (String(u.estado ?? '').toLowerCase() === 'activo' || String(u.estado ?? '') === '1' || String(u.estado ?? '').toLowerCase() === 'true');
 
       const estadoHtml = `<span class="status-pill ${estadoBool ? 'status-on' : 'status-off'}">${estadoBool ? 'Activo' : 'Inactivo'}</span>`;
+      const lastAcc = u.ultimoAcceso || u.ultimoacceso || u['ultimo acceso'] || u.lastAccess || null;
+
       tr.innerHTML = `
         <td>${baseIndex + idx + 1}</td>
         <td>${escapeHtml(u.usuario)}</td>
         <td title="${escapeHtml(u.nombre)}">${escapeHtml(u.nombre)}</td>
         <td>${escapeHtml(ucFirst(u.rol))}</td>
         <td>${estadoHtml}</td>
-        <td>${fmtFecha(u.ultimoAcceso)}</td>
+        <td>${fmtFecha(lastAcc)}</td>
         <td class="td-acciones">
           <button class="kebab-btn btn-menu" title="Acciones">⋮</button>
         </td>`;
       tbody.appendChild(tr);
     });
   }
+// === frontend/js/usuarios-admin.js — PARTE 2/2 ===
 
   function renderBitacora(rows) {
     if (!tbodyBit) return;
@@ -762,23 +736,13 @@
     url.searchParams.set('pageSize', String(pagUsuarios.pageSize));
     if (pagUsuarios.q) url.searchParams.set('q', pagUsuarios.q);
 
-    // 🔐 token para este fetch directo
-    const token =
-      localStorage.getItem('token') ||
-      localStorage.getItem('jwt') ||
-      localStorage.getItem('access_token');
-
     let resp;
     try{
-      resp = await fetch(url.toString(), {
-        headers: {
-          'Accept':'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...actorHeaders()
-        },
-        mode:'cors',
-        credentials:'omit'
-      });
+      // Headers pasan por actorHeaders + token vía apiFetch pattern
+      const token = localStorage.getItem('token') || localStorage.getItem('jwt') || localStorage.getItem('access_token');
+      const headers = { ...actorHeaders(), Accept:'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      resp = await fetch(url.toString(), { headers, mode:'cors', credentials:'omit' });
     }catch(e){
       console.error('[usuarios] fetch error', e);
       renderEmptyRow(tbody, 7, 'Error de red cargando usuarios');
@@ -841,23 +805,12 @@
     url.searchParams.set('pageSize', String(pagBitacora.pageSize));
     if (pagBitacora.q) url.searchParams.set('q', pagBitacora.q);
 
-    // 🔐 token para este fetch directo
-    const token =
-      localStorage.getItem('token') ||
-      localStorage.getItem('jwt') ||
-      localStorage.getItem('access_token');
-
     let resp;
     try{
-      resp = await fetch(url.toString(), {
-        headers: {
-          'Accept':'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...actorHeaders()
-        },
-        mode:'cors',
-        credentials:'omit'
-      });
+      const token = localStorage.getItem('token') || localStorage.getItem('jwt') || localStorage.getItem('access_token');
+      const headers = { ...actorHeaders(), Accept:'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      resp = await fetch(url.toString(), { headers, mode:'cors', credentials:'omit' });
     }catch(e){
       console.error('[bitacora] fetch error', e);
       renderEmptyRow(tbodyBit, 5, 'Error de red cargando bitácora');
@@ -868,6 +821,11 @@
     try { json = await resp.json(); } catch {}
     if (!resp.ok) {
       const msg = (json && (json.error||json.message)) || `HTTP ${resp.status}`;
+      // Caso específico: la tabla no existe aún
+      if (/bitacora/i.test(String(msg)) && /does not exist/i.test(String(msg))) {
+        renderEmptyRow(tbodyBit, 5, 'La bitácora aún no está habilitada en el servidor.');
+        return;
+      }
       renderEmptyRow(tbodyBit, 5, msg || 'Error cargando bitácora');
       return;
     }
@@ -919,14 +877,11 @@
     const password = $('#password').value;
     const forzarCambio = $('#forzarCambio').checked;
 
-    // Validaciones con email requerido
     if (!usuario || !nombre || !email || !rol || !password) {
-      showToast('Completa todos los campos.','warning');
-      return msgCrear('Completa todos los campos.');
+      showToast('Completa todos los campos.','warning'); return msgCrear('Completa todos los campos.');
     }
     if (!isValidEmail(email)) {
-      showToast('El correo electrónico no es válido.','warning');
-      return msgCrear('El correo electrónico no es válido.');
+      showToast('El correo electrónico no es válido.','warning'); return msgCrear('El correo electrónico no es válido.');
     }
 
     try {
@@ -1062,12 +1017,10 @@
       $('#editUsuario').value = u.usuario;
       $('#editNombre').value = u.nombre;
       $('#editRol').value = u.rol;
-      // ✅ email al abrir edición (si el backend lo devuelve)
-      if (document.getElementById('editEmail')) {
-        document.getElementById('editEmail').value = (u.email || '');
-      }
+      if (document.getElementById('editEmail')) document.getElementById('editEmail').value = (u.email || '');
       $('#editPassword').value = '';
-      $('#editForzarCambio').checked = !!u.forzarCambio;
+      const fc = (typeof u.forzarCambio !== 'undefined') ? u.forzarCambio : u.forzarcambio;
+      $('#editForzarCambio').checked = !!fc;
       drawer && drawer.classList.add('open');
       drawer && drawer.setAttribute('aria-hidden','false');
     }catch(e){ showToast(e.message,'error'); }
@@ -1078,6 +1031,10 @@
     drawer.setAttribute('aria-hidden','true');
     const m = $('#msgFormEditar'); if (m) m.textContent='';
   }
+  // 👉 expone para menú kebab
+  window.abrirEditar = abrirEditar;
+  window.cerrarDrawer = cerrarDrawer;
+
   btnCerrarDrawer && btnCerrarDrawer.addEventListener('click', cerrarDrawer);
   btnCancelarEdit && btnCancelarEdit.addEventListener('click', cerrarDrawer);
 
@@ -1104,16 +1061,9 @@
       showToast('Completa los campos requeridos.','warning');
       return msgEditar('Completa los campos requeridos.');
     }
-    // ✅ si existe el campo email en el drawer, exigir formato válido
     if (document.getElementById('editEmail')) {
-      if (!email) {
-        showToast('El correo electrónico es obligatorio.','warning');
-        return msgEditar('El correo electrónico es obligatorio.');
-      }
-      if (!isValidEmail(email)) {
-        showToast('El correo electrónico no es válido.','warning');
-        return msgEditar('El correo electrónico no es válido.');
-      }
+      if (!email) { showToast('El correo electrónico es obligatorio.','warning'); return msgEditar('El correo electrónico es obligatorio.'); }
+      if (!isValidEmail(email)) { showToast('El correo electrónico no es válido.','warning'); return msgEditar('El correo electrónico no es válido.'); }
     }
 
     const btn = btnGuardarEdit;
@@ -1175,7 +1125,7 @@
   });
   btnRefrescar && btnRefrescar.addEventListener('click', ()=>cargarUsuarios(inpBuscar?.value || ''));
 
-  // --- Exportar: CSV con metadatos ---
+  // --- Exportar: CSV ---
   btnExportUsuariosCsv && btnExportUsuariosCsv.addEventListener('click', ()=>{
     const meta = [
       [BRAND.nombre],
@@ -1186,13 +1136,13 @@
     ];
     const rows = [
       ['#','Usuario','Nombre','Rol','Estado','Último acceso'],
-      ...listaUsuarios.map((u,i)=>[
-        ((pagUsuarios.page-1)*pagUsuarios.pageSize) + i + 1,
-        u.usuario, u.nombre, u.rol,
-        ((typeof u.estado==='boolean') ? (u.estado?'Activo':'Inactivo')
-         : (String(u.estado ?? '').toLowerCase() === 'activo' || String(u.estado ?? '') === '1' || String(u.estado ?? '').toLowerCase() === 'true' ? 'Activo' : 'Inactivo')),
-        fmtFecha(u.ultimoAcceso)
-      ])
+      ...listaUsuarios.map((u,i)=>{
+        const estadoTxt = ((typeof u.estado==='boolean') ? (u.estado?'Activo':'Inactivo')
+          : (String(u.estado ?? '').toLowerCase() === 'activo' || String(u.estado ?? '') === '1' || String(u.estado ?? '').toLowerCase() === 'true' ? 'Activo' : 'Inactivo'));
+        const lastAcc = u.ultimoAcceso || u.ultimoacceso || u['ultimo acceso'] || u.lastAccess || null;
+        return [ ((pagUsuarios.page-1)*pagUsuarios.pageSize) + i + 1,
+          u.usuario, u.nombre, u.rol, estadoTxt, fmtFecha(lastAcc) ];
+      })
     ];
     descargarCSV([...meta, ...rows], `usuarios-${hoy()}.csv`);
   });
@@ -1205,7 +1155,8 @@
       ['Por:', actorNombre()],
       ['']
     ];
-    const rows = listaBitacora.length ? listaBitacora : await API.BitacoraAPI.listar().catch(()=>[]);
+    const fallback = await API.BitacoraAPI.listar().catch(()=>[]);
+    const rows = listaBitacora.length ? listaBitacora : fallback;
     const data = [
       ['Fecha','Acción','Usuario afectado','Hecho por','Detalles'],
       ...rows.map(r=>[
@@ -1215,7 +1166,7 @@
     descargarCSV([...meta, ...data], `bitacora-${hoy()}.csv`);
   });
 
-  // --- Exportar: Imprimir con logo + metadatos ---
+  // --- Exportar: Imprimir ---
   btnExportUsuarios && btnExportUsuarios.addEventListener('click', ()=>imprimirTabla('#tablaUsuarios','Usuarios - Taller RCV'));
   btnExportBitacora && btnExportBitacora.addEventListener('click', ()=>imprimirTabla('#tablaBitacora','Bitácora - Taller RCV'));
 
@@ -1272,755 +1223,741 @@
       console.error(e);
       showToast('No se pudo cargar usuarios desde la API. ¿Backend activo?','error');
     }
+
     // ===================== KEBAB MENU (⋮) =====================
-(function () {
-  const tabla = document.querySelector('#tablaUsuarios tbody');
-  if (!tabla) return;
+    (function () {
+      const tabla = document.querySelector('#tablaUsuarios tbody');
+      if (!tabla) return;
 
-  let menu = document.getElementById('kebabMenu');
-  if (!menu) {
-    menu = document.createElement('div');
-    menu.id = 'kebabMenu';
-    menu.className = 'kebab-menu';
-    menu.setAttribute('role', 'menu');
-    menu.setAttribute('aria-hidden', 'true');
-    menu.style.display = 'none';
-    document.body.appendChild(menu);
-  }
-
-  let currentBtn = null;
-  let currentUser = null;
-
-  function isActivo(u) {
-    const v = u?.estado;
-    if (typeof v === 'boolean') return v;
-    const s = String(v ?? '').toLowerCase();
-    return !(s === 'inactivo' || s === '0' || s === 'false' || s === 'off');
-  }
-
-  function buildMenu(u) {
-    const toggleText = isActivo(u) ? 'Desactivar' : 'Activar';
-    const soyYo = (u?.usuario || '') === (getUsuarioActual() || '');
-    menu.innerHTML = `
-      <button type="button" role="menuitem" data-act="editar">Editar</button>
-      <button type="button" role="menuitem" data-act="permisos">Permisos</button>
-      <button type="button" role="menuitem" data-act="toggle">${toggleText}</button>
-      <button type="button" role="menuitem" data-act="reset">Restablecer contraseña</button>
-      <button type="button" role="menuitem" data-act="bitacora">Ver bitácora</button>
-      <button type="button" role="menuitem" data-act="eliminar" ${soyYo ? 'disabled aria-disabled="true" title="No puedes eliminar tu propia cuenta"' : ''}>Eliminar</button>
-    `;
-  }
-
-  function positionMenu(btn) {
-    menu.style.display = 'block';
-    menu.setAttribute('aria-hidden', 'false');
-
-    const rect = btn.getBoundingClientRect();
-    const vw = document.documentElement.clientWidth;
-    const vh = document.documentElement.clientHeight;
-
-    const mw = menu.offsetWidth;
-    const mh = menu.offsetHeight;
-
-    let left = window.scrollX + rect.left;
-    let top  = window.scrollY + rect.bottom + 6;
-
-    if (left + mw > window.scrollX + vw) {
-      left = window.scrollX + rect.right - mw;
-    }
-    if (top + mh > window.scrollY + vh) {
-      top = window.scrollY + rect.top - mh - 6;
-    }
-
-    menu.style.left = `${left}px`;
-    menu.style.top  = `${top}px`;
-
-    const first = menu.querySelector('button[role="menuitem"]:not([disabled])');
-    first?.focus();
-  }
-
-  function openKebabMenu(btn, u) {
-    if (!u) return;
-    closeKebabMenu();
-    currentBtn = btn;
-    currentUser = u;
-    currentBtn.setAttribute('aria-expanded', 'true');
-    buildMenu(u);
-    positionMenu(btn);
-    bindOutsideHandlers(true);
-  }
-
-  function closeKebabMenu() {
-    if (!menu) return;
-    menu.style.display = 'none';
-    menu.setAttribute('aria-hidden', 'true');
-    if (currentBtn) currentBtn.setAttribute('aria-expanded', 'false');
-    currentBtn?.focus();
-    currentBtn = null;
-    currentUser = null;
-    bindOutsideHandlers(false);
-  }
-
-  function bindOutsideHandlers(enable) {
-    const onDocClick = (e) => {
-      if (!menu.contains(e.target) && e.target !== currentBtn) closeKebabMenu();
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); closeKebabMenu(); }
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const items = Array.from(menu.querySelectorAll('button[role="menuitem"]'));
-        if (!items.length) return;
-        const i = items.indexOf(document.activeElement);
-        let next = 0;
-        if (e.key === 'ArrowDown') next = (i + 1) % items.length;
-        if (e.key === 'ArrowUp')   next = (i - 1 + items.length) % items.length;
-        items[next].focus();
+      let menu = document.getElementById('kebabMenu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'kebabMenu';
+        menu.className = 'kebab-menu';
+        menu.setAttribute('role', 'menu');
+        menu.setAttribute('aria-hidden', 'true');
+        menu.style.display = 'none';
+        document.body.appendChild(menu);
       }
-    };
-    const onScroll = () => closeKebabMenu();
-    const onResize = () => closeKebabMenu();
 
-    if (enable) {
-      document.addEventListener('click', onDocClick);
-      document.addEventListener('keydown', onKey);
-      window.addEventListener('scroll', onScroll, true);
-      window.addEventListener('resize', onResize);
+      let currentBtn = null;
+      let currentUser = null;
 
-      menu._off = () => {
-        document.removeEventListener('click', onDocClick);
-        document.removeEventListener('keydown', onKey);
-        window.removeEventListener('scroll', onScroll, true);
-        window.removeEventListener('resize', onResize);
-        menu._off = null;
-      };
-    } else if (menu._off) {
-      menu._off();
-    }
-  }
+      function isActivo(u) {
+        const v = u?.estado;
+        if (typeof v === 'boolean') return v;
+        const s = String(v ?? '').toLowerCase();
+        return !(s === 'inactivo' || s === '0' || s === 'false' || s === 'off');
+      }
 
-  tabla.addEventListener('click', async function (e) {
-    const btn = e.target.closest('.kebab-btn, .btn-menu');
-    if (!btn) return;
-    if (!/kebab-btn|btn-menu/.test(btn.className)) return;
-    closeKebabMenu();
-    return;
-  }, true);
+      function buildMenu(u) {
+        const toggleText = isActivo(u) ? 'Desactivar' : 'Activar';
+        const soyYo = (u?.usuario || '') === (getUsuarioActual() || '');
+        menu.innerHTML = `
+          <button type="button" role="menuitem" data-act="editar">Editar</button>
+          <button type="button" role="menuitem" data-act="permisos">Permisos</button>
+          <button type="button" role="menuitem" data-act="toggle">${toggleText}</button>
+          <button type="button" role="menuitem" data-act="reset">Restablecer contraseña</button>
+          <button type="button" role="menuitem" data-act="bitacora">Ver bitácora</button>
+          <button type="button" role="menuitem" data-act="eliminar" ${soyYo ? 'disabled aria-disabled="true" title="No puedes eliminar tu propia cuenta"' : ''}>Eliminar</button>
+        `;
+      }
 
-  menu.addEventListener('click', async function (e) {
-    const item = e.target.closest('button[role="menuitem"]');
-    if (!item || !currentUser) return;
+      function positionMenu(btn) {
+        menu.style.display = 'block';
+        menu.setAttribute('aria-hidden', 'false');
 
-    const act = item.dataset.act;
-    const u = currentUser;
+        const rect = btn.getBoundingClientRect();
+        const vw = document.documentElement.clientWidth;
+        const vh = document.documentElement.clientHeight;
 
-    try {
-      if (act === 'editar') {
-        if (typeof window.abrirEditar === 'function') {
-          window.abrirEditar(u.id);
-        }
+        const mw = menu.offsetWidth;
+        const mh = menu.offsetHeight;
+
+        let left = window.scrollX + rect.left;
+        let top  = window.scrollY + rect.bottom + 6;
+
+        if (left + mw > window.scrollX + vw) left = window.scrollX + rect.right - mw;
+        if (top + mh > window.scrollY + vh)   top  = window.scrollY + rect.top - mh - 6;
+
+        menu.style.left = `${left}px`;
+        menu.style.top  = `${top}px`;
+
+        const first = menu.querySelector('button[role="menuitem"]:not([disabled])');
+        first?.focus();
+      }
+
+      function openKebabMenu(btn, u) {
+        if (!u) return;
         closeKebabMenu();
-        return;
+        currentBtn = btn;
+        currentUser = u;
+        currentBtn.setAttribute('aria-expanded', 'true');
+        buildMenu(u);
+        positionMenu(btn);
+        bindOutsideHandlers(true);
       }
 
-      if (act === 'permisos') {
-        const user = await API.UsuariosAPI.obtener(u.id);
-        renderPermModal(user);
-        openPermModal();
+      function closeKebabMenu() {
+        if (!menu) return;
+        menu.style.display = 'none';
+        menu.setAttribute('aria-hidden', 'true');
+        if (currentBtn) currentBtn.setAttribute('aria-expanded', 'false');
+        currentBtn?.focus();
+        currentBtn = null;
+        currentUser = null;
+        bindOutsideHandlers(false);
+      }
 
-        const saveBtn = document.getElementById('btnSavePerms');
-        if (saveBtn) {
-          saveBtn.onclick = async () => {
-            try {
-              const permisos = collectModalPerms();
-              const meUser = getUsuarioActual();
-              const soyYo = (meUser && meUser === user.usuario);
-              const soyAdminActual = String(sesionActual()?.rol || '').toLowerCase() === 'administrador';
-              if (soyYo && soyAdminActual && !permisos.includes('usuarios:admin')) {
-                showToast('No puedes quitarte el permiso de administrador a ti mismo.','warning');
-                return;
-              }
-              await API.UsuariosAPI.actualizarPermisos(user.id, permisos);
+      function bindOutsideHandlers(enable) {
+        const onDocClick = (e) => { if (!menu.contains(e.target) && e.target !== currentBtn) closeKebabMenu(); };
+        const onKey = (e) => {
+          if (e.key === 'Escape') { e.preventDefault(); closeKebabMenu(); }
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const items = Array.from(menu.querySelectorAll('button[role="menuitem"]'));
+            if (!items.length) return;
+            const i = items.indexOf(document.activeElement);
+            let next = 0;
+            if (e.key === 'ArrowDown') next = (i + 1) % items.length;
+            if (e.key === 'ArrowUp')   next = (i - 1 + items.length) % items.length;
+            items[next].focus();
+          }
+        };
+        const onScroll = () => closeKebabMenu();
+        const onResize = () => closeKebabMenu();
 
-              const meUser2 = getUsuarioActual();
-              if (meUser2 && meUser2 === user.usuario) {
-                let meObj = {};
-                try { meObj = JSON.parse(localStorage.getItem('usuarioActual')) || {}; } catch {}
-                meObj.permisos = permisos;
-                localStorage.setItem('usuarioActual', JSON.stringify(meObj));
-                showToast('Se actualizaron tus permisos. Se recargará la página.','success');
-                window.__requestAppReload ? window.__requestAppReload(650) : setTimeout(()=>location.reload(), 650);
-                return;
-              }
+        if (enable) {
+          document.addEventListener('click', onDocClick);
+          document.addEventListener('keydown', onKey);
+          window.addEventListener('scroll', onScroll, true);
+          window.addEventListener('resize', onResize);
 
-              await cargarBitacora();
-              closePermModal();
-              showToast('Permisos actualizados.','success');
-            } catch (err) {
-              showToast(err.message || 'Error al actualizar permisos','error');
-            }
+          menu._off = () => {
+            document.removeEventListener('click', onDocClick);
+            document.removeEventListener('keydown', onKey);
+            window.removeEventListener('scroll', onScroll, true);
+            window.removeEventListener('resize', onResize);
+            menu._off = null;
           };
+        } else if (menu._off) {
+          menu._off();
         }
-        closeKebabMenu();
-        return;
       }
 
-      if (act === 'toggle') {
-        if ((u?.usuario || '') === (getUsuarioActual() || '')) {
-          showToast('No puedes desactivarte a ti mismo.','warning');
+      tabla.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.kebab-btn, .btn-menu');
+        if (!btn) return;
+        if (!/kebab-btn|btn-menu/.test(btn.className)) return;
+        closeKebabMenu();
+        return;
+      }, true);
+
+      menu.addEventListener('click', async function (e) {
+        const item = e.target.closest('button[role="menuitem"]');
+        if (!item || !currentUser) return;
+
+        const act = item.dataset.act;
+        const u = currentUser;
+
+        try {
+          if (act === 'editar') {
+            if (typeof window.abrirEditar === 'function') window.abrirEditar(u.id);
+            closeKebabMenu(); return;
+          }
+
+          if (act === 'permisos') {
+            const user = await API.UsuariosAPI.obtener(u.id);
+            renderPermModal(user);
+            openPermModal();
+
+            const saveBtn = document.getElementById('btnSavePerms');
+            if (saveBtn) {
+              saveBtn.onclick = async () => {
+                try {
+                  const permisos = collectModalPerms();
+                  const meUser = getUsuarioActual();
+                  const soyYo = (meUser && meUser === user.usuario);
+                  const soyAdminActual = String(sesionActual()?.rol || '').toLowerCase() === 'administrador';
+                  if (soyYo && soyAdminActual && !permisos.includes('usuarios:admin')) {
+                    showToast('No puedes quitarte el permiso de administrador a ti mismo.','warning');
+                    return;
+                  }
+                  await API.UsuariosAPI.actualizarPermisos(user.id, permisos);
+
+                  const meUser2 = getUsuarioActual();
+                  if (meUser2 && meUser2 === user.usuario) {
+                    let meObj = {};
+                    try { meObj = JSON.parse(localStorage.getItem('usuarioActual')) || {}; } catch {}
+                    meObj.permisos = permisos;
+                    localStorage.setItem('usuarioActual', JSON.stringify(meObj));
+                    showToast('Se actualizaron tus permisos. Se recargará la página.','success');
+                    window.__requestAppReload ? window.__requestAppReload(650) : setTimeout(()=>location.reload(), 650);
+                    return;
+                  }
+
+                  await cargarBitacora();
+                  closePermModal();
+                  showToast('Permisos actualizados.','success');
+                } catch (err) {
+                  showToast(err.message || 'Error al actualizar permisos','error');
+                }
+              };
+            }
+            closeKebabMenu(); return;
+          }
+
+          if (act === 'toggle') {
+            if ((u?.usuario || '') === (getUsuarioActual() || '')) {
+              showToast('No puedes desactivarte a ti mismo.','warning');
+              closeKebabMenu(); return;
+            }
+            const next = isActivo(u) ? 0 : 1;
+            await API.UsuariosAPI.estado(u.id, next);
+            await cargarUsuarios(document.querySelector('#buscarUsuario')?.value || '');
+            await cargarBitacora();
+            showToast(next ? 'Usuario activado.' : 'Usuario desactivado.','info');
+            closeKebabMenu(); return;
+          }
+
+          if (act === 'reset') {
+            const ok = await showConfirm('¿Reiniciar la contraseña de este usuario? Se forzará cambio al próximo inicio.');
+            if (!ok) { closeKebabMenu(); return; }
+            const r = await API.UsuariosAPI.resetPass(u.id);
+            const html = `<div class="code-box">${(r?.nueva ? String(r.nueva).replace(/&/g,'&amp;').replace(/</g,'&lt;') : '')}</div><div style="margin-top:8px;color:#555">Guárdala y compártela de forma segura.</div>`;
+            await showInfoModal('Contraseña temporal generada', html);
+            await cargarBitacora();
+            closeKebabMenu(); return;
+          }
+
+          if (act === 'bitacora') {
+            if (typeof window.accionVerBitacora === 'function') window.accionVerBitacora(u.id);
+            else showToast('Abriendo bitácora…','info');
+            closeKebabMenu(); return;
+          }
+
+          if (act === 'eliminar') {
+            if ((u?.usuario || '') === (getUsuarioActual() || '')) {
+              showToast('No puedes eliminar tu propia cuenta.','warning');
+              closeKebabMenu(); return;
+            }
+            const ok = await showConfirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');
+            if (!ok) { closeKebabMenu(); return; }
+            await API.UsuariosAPI.eliminar(u.id);
+            await cargarUsuarios(document.querySelector('#buscarUsuario')?.value || '');
+            await cargarBitacora();
+            showToast('Usuario eliminado.','success');
+            closeKebabMenu(); return;
+          }
+        } catch (err) {
+          showToast(err.message || 'Ocurrió un error','error');
           closeKebabMenu();
-          return;
         }
-        const next = isActivo(u) ? 0 : 1;
-        await API.UsuariosAPI.estado(u.id, next);
-        await cargarUsuarios(document.querySelector('#buscarUsuario')?.value || '');
-        await cargarBitacora();
-        showToast(next ? 'Usuario activado.' : 'Usuario desactivado.','info');
-        closeKebabMenu();
-        return;
-      }
+      });
 
-      if (act === 'reset') {
-        const ok = await showConfirm('¿Reiniciar la contraseña de este usuario? Se forzará cambio al próximo inicio.');
-        if (!ok) { closeKebabMenu(); return; }
-        const r = await API.UsuariosAPI.resetPass(u.id);
-        const html = `<div class="code-box">${(r?.nueva ? String(r.nueva).replace(/&/g,'&amp;').replace(/</g,'&lt;') : '')}</div><div style="margin-top:8px;color:#555">Guárdala y compártela de forma segura.</div>`;
-        await showInfoModal('Contraseña temporal generada', html);
-        await cargarBitacora();
-        closeKebabMenu();
-        return;
-      }
-
-      if (act === 'bitacora') {
-        if (typeof window.accionVerBitacora === 'function') {
-          window.accionVerBitacora(u.id);
-        } else {
-          showToast('Abriendo bitácora…','info');
-        }
-        closeKebabMenu();
-        return;
-      }
-
-      if (act === 'eliminar') {
-        if ((u?.usuario || '') === (getUsuarioActual() || '')) {
-          showToast('No puedes eliminar tu propia cuenta.','warning');
-          closeKebabMenu();
-          return;
-        }
-        const ok = await showConfirm('¿Eliminar este usuario? Esta acción no se puede deshacer.');
-        if (!ok) { closeKebabMenu(); return; }
-        await API.UsuariosAPI.eliminar(u.id);
-        await cargarUsuarios(document.querySelector('#buscarUsuario')?.value || '');
-        await cargarBitacora();
-        showToast('Usuario eliminado.','success');
-        closeKebabMenu();
-        return;
-      }
-    } catch (err) {
-      showToast(err.message || 'Ocurrió un error','error');
-      closeKebabMenu();
-    }
-  });
-
-})();
+    })();
   });
 
   // ===================== ENHANCEMENTS =====================
-(function(){
-  const tbody = document.querySelector('#tablaUsuarios tbody');
+  (function(){
+    const tbody = document.querySelector('#tablaUsuarios tbody');
 
-  function __applyRoleGuardsToRow(menuRow, user){
-    if (!menuRow || !user) return;
-    const soyYo   = (user?.usuario || '') === (getUsuarioActual() || '');
-    const esAdmin = String((sesionActual()?.rol || '')).toLowerCase() === 'administrador';
-
-    const btnToggle = menuRow.querySelector('.act-toggle');
-    const btnReset  = menuRow.querySelector('.act-reset');
-    const btnDel    = menuRow.querySelector('.act-eliminar');
-
-    if (btnToggle && soyYo) {
-      btnToggle.disabled = true;
-      btnToggle.setAttribute('aria-disabled','true');
-      btnToggle.title = 'No puedes desactivarte a ti mismo';
-    }
-    if (btnReset && !esAdmin) {
-      btnReset.disabled = true;
-      btnReset.setAttribute('aria-disabled','true');
-      btnReset.title = 'Solo administradores pueden restablecer contraseñas';
-    }
-    if (btnDel && (!esAdmin || soyYo)) {
-      btnDel.disabled = true;
-      btnDel.setAttribute('aria-disabled','true');
-      btnDel.title = soyYo ? 'No puedes eliminar tu propia cuenta' : 'Solo administradores pueden eliminar usuarios';
-    }
-  }
-
-  if (tbody) {
-    const mo = new MutationObserver((muts)=>{
-      muts.forEach(m=>{
-        m.addedNodes.forEach(n=>{
-          if (n.nodeType===1 && n.matches('tr.menu-row')) {
-            const tr = n.previousElementSibling;
-            const id = Number(tr?.dataset?.id);
-            const user = (window.getUsuarios?.()||[]).find(x=>Number(x.id)===id);
-            const menu = n.querySelector('.row-menu');
-            __applyRoleGuardsToRow(menu, user);
-          }
-        });
-      });
-    });
-    mo.observe(tbody, { childList: true });
-  }
-
-  (function watchKebab(){
-    const kebab = document.getElementById('kebabMenu');
-    if (!kebab) {
-      document.addEventListener('DOMContentLoaded', watchKebab, { once:true });
-      return;
-    }
-    const mo2 = new MutationObserver(()=>{
+    function __applyRoleGuardsToRow(menuRow, user){
+      if (!menuRow || !user) return;
+      const soyYo   = (user?.usuario || '') === (getUsuarioActual() || '');
       const esAdmin = String((sesionActual()?.rol || '')).toLowerCase() === 'administrador';
-      if (esAdmin) return;
-      const btnReset = kebab.querySelector('button[data-act="reset"]');
-      const btnDel   = kebab.querySelector('button[data-act="eliminar"]');
-      [btnReset, btnDel].forEach(b=>{
-        if (!b) return;
-        b.disabled = true;
-        b.setAttribute('aria-disabled','true');
-        if (b.dataset.act==='reset') b.title = 'Solo administradores pueden restablecer contraseñas';
-        if (b.dataset.act==='eliminar') b.title = 'Solo administradores pueden eliminar usuarios';
-      });
-    });
-    mo2.observe(kebab, { childList: true, subtree: true });
-  })();
 
-  const toolbar = document.querySelector('.toolbar') || document.querySelector('.card .toolbar');
-  const inpBuscarLocal = document.getElementById('buscarUsuario');
+      const btnToggle = menuRow.querySelector('.act-toggle');
+      const btnReset  = menuRow.querySelector('.act-reset');
+      const btnDel    = menuRow.querySelector('.act-eliminar');
 
-  let spanCount = document.getElementById('countUsuarios');
-  if (!spanCount) {
-    spanCount = document.createElement('span');
-    spanCount.id = 'countUsuarios';
-    spanCount.className = 'muted';
-    spanCount.style.marginRight = '8px';
-    spanCount.textContent = 'Usuarios (0)';
-    toolbar?.prepend(spanCount);
-  }
-
-  let selRol = document.getElementById('filtroRol');
-  if (!selRol) {
-    selRol = document.createElement('select');
-    selRol.id = 'filtroRol';
-    selRol.title = 'Filtrar por rol';
-    selRol.style.marginRight = '8px';
-    selRol.innerHTML = `
-      <option value="todos">Todos los roles</option>
-      <option value="administrador">Administrador</option>
-      <option value="mecanico">Mecánico</option>
-      <option value="recepcion">Recepción</option>
-      <option value="gerencia">Gerencia</option>
-      <option value="calidad">Control de Calidad</option>
-      <option value="bodega">Bodega / Repuestos</option>
-    `;
-    toolbar?.prepend(selRol);
-  }
-
-  let selEstado = document.getElementById('filtroEstado');
-  if (!selEstado) {
-    selEstado = document.createElement('select');
-    selEstado.id = 'filtroEstado';
-    selEstado.title = 'Filtrar por estado';
-    selEstado.style.marginRight = '8px';
-    selEstado.innerHTML = `
-      <option value="todos">Todos</option>
-      <option value="activos">Activos</option>
-      <option value="inactivos">Inactivos</option>
-    `;
-    toolbar?.prepend(selEstado);
-  }
-
-  let __listaBase = [];
-
-  function __normalizaEstado(v){
-    if (typeof v === 'boolean') return v ? 'activos' : 'inactivos';
-    const s = String(v ?? '').toLowerCase();
-    if (s === '1' || s === 'true' || s === 'activo') return 'activos';
-    return 'inactivos';
-  }
-  function __escRegex(s){ return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
-  function __highlightCell(td, query){
-    if (!td) return;
-    const q = String(query||'').trim();
-    const original = td.getAttribute('data-original-text');
-    let baseText = original ?? td.textContent;
-    if (!original) td.setAttribute('data-original-text', baseText);
-    if (!q) { td.innerHTML = escapeHtml(baseText); return; }
-    const re = new RegExp(__escRegex(q), 'ig');
-    td.innerHTML = escapeHtml(baseText).replace(re, m=>`<mark>${escapeHtml(m)}</mark>`);
-  }
-
-  function __aplicarFiltros(){
-    let arr = Array.isArray(__listaBase) ? __listaBase.slice() : [];
-    const rol = (selRol?.value || 'todos').toLowerCase();
-    const est = (selEstado?.value || 'todos').toLowerCase();
-
-    if (rol !== 'todos') arr = arr.filter(u => String(u.rol||'').toLowerCase() === rol);
-    if (est !== 'todos') arr = arr.filter(u => __normalizaEstado(u.estado) === est);
-
-    listaUsuarios = arr;
-    renderUsuarios();
-
-    const q = (inpBuscarLocal?.value || '').trim();
-    if (q) {
-      document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
-        __highlightCell(tr.children[1], q);
-        __highlightCell(tr.children[2], q);
-      });
-    } else {
-      document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
-        __highlightCell(tr.children[1], '');
-        __highlightCell(tr.children[2], '');
-      });
-    }
-
-    document.querySelectorAll('#tablaUsuarios .btn-menu')
-      .forEach(b=>b.setAttribute('aria-label','Acciones'));
-
-    spanCount.textContent = `Usuarios (${arr.length})`;
-  }
-
-  const __cargarUsuarios = cargarUsuarios;
-  cargarUsuarios = async function(q=''){
-    await __cargarUsuarios(q);
-    __listaBase = Array.isArray(window.getUsuarios?.()) ? window.getUsuarios().slice() : [];
-    __aplicarFiltros();
-  };
-
-  selRol?.addEventListener('change', __aplicarFiltros);
-  selEstado?.addEventListener('change', __aplicarFiltros);
-
-  let __drawerLastFocus = null;
-const __abrirEditar = abrirEditar;
-const __cerrarDrawer = cerrarDrawer;
-
-abrirEditar = async function(id){
-  __drawerLastFocus = document.activeElement;
-  await __abrirEditar(id);
-  const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = false;
-  setTimeout(()=>__setupDrawerA11y(), 0);
-};
-
-cerrarDrawer = function(){
-  const dr = document.getElementById('drawerEditar');
-  if (dr && dr._cleanupA11y) dr._cleanupA11y();
-  __cerrarDrawer();
-  const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = true;
-  try { __drawerLastFocus?.focus(); } catch {}
-  __drawerLastFocus = null;
-  };
-
-  function __setupDrawerA11y(){
-    const dr = document.getElementById('drawerEditar');
-    if (!dr) return;
-    const focusables = dr.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
-    if (!focusables.length) return;
-
-    focusables[0].focus();
-
-    function onKey(e){
-      if (e.key === 'Escape') { e.preventDefault(); cerrarDrawer(); }
-      if (e.key === 'Tab') {
-        const first = focusables[0];
-        const last  = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      if (btnToggle && soyYo) {
+        btnToggle.disabled = true;
+        btnToggle.setAttribute('aria-disabled','true');
+        btnToggle.title = 'No puedes desactivarte a ti mismo';
+      }
+      if (btnReset && !esAdmin) {
+        btnReset.disabled = true;
+        btnReset.setAttribute('aria-disabled','true');
+        btnReset.title = 'Solo administradores pueden restablecer contraseñas';
+      }
+      if (btnDel && (!esAdmin || soyYo)) {
+        btnDel.disabled = true;
+        btnDel.setAttribute('aria-disabled','true');
+        btnDel.title = soyYo ? 'No puedes eliminar tu propia cuenta' : 'Solo administradores pueden eliminar usuarios';
       }
     }
-    dr.addEventListener('keydown', onKey);
-    dr._cleanupA11y = () => dr.removeEventListener('keydown', onKey);
-  }
 
-  function __pwdScore(pw){
-    const s = String(pw||'');
-    let score = 0;
-    if (s.length >= 8) score++;
-    if (/[a-z]/.test(s)) score++;
-    if (/[A-Z]/.test(s)) score++;
-    if (/[0-9]/.test(s)) score++;
-    if (/[^A-Za-z0-9]/.test(s)) score++;
-    const labels = ['Muy débil','Débil','Media','Fuerte','Muy fuerte'];
-    return { score, label: labels[Math.max(0, score-1)] || 'Muy débil' };
-  }
-  function __attachMeter(inputId){
-    const inp = document.getElementById(inputId);
-    if (!inp) return;
-    let meter = inp.nextElementSibling;
-    if (!(meter && meter.classList?.contains('pwd-meter'))) {
-      meter = document.createElement('div');
-      meter.className = 'pwd-meter';
-      meter.style.fontSize = '12px';
-      meter.style.marginTop = '6px';
-      meter.style.opacity = '0.9';
-      meter.style.userSelect = 'none';
-      inp.insertAdjacentElement('afterend', meter);
+    if (tbody) {
+      const mo = new MutationObserver((muts)=>{
+        muts.forEach(m=>{
+          m.addedNodes.forEach(n=>{
+            if (n.nodeType===1 && n.matches('tr.menu-row')) {
+              const tr = n.previousElementSibling;
+              const id = Number(tr?.dataset?.id);
+              const user = (window.getUsuarios?.()||[]).find(x=>Number(x.id)===id);
+              const menu = n.querySelector('.row-menu');
+              __applyRoleGuardsToRow(menu, user);
+            }
+          });
+        });
+      });
+      mo.observe(tbody, { childList: true });
     }
-    const update = () => {
-      const { score, label } = __pwdScore(inp.value);
-      meter.textContent = `Seguridad: ${label}`;
-      meter.style.background = `linear-gradient(90deg, currentColor ${score*20}%, #e5e7eb ${score*20}%)`;
-      meter.style.padding = '4px 8px';
-      meter.style.borderRadius = '6px';
+
+    (function watchKebab(){
+      const kebab = document.getElementById('kebabMenu');
+      if (!kebab) {
+        document.addEventListener('DOMContentLoaded', watchKebab, { once:true });
+        return;
+      }
+      const mo2 = new MutationObserver(()=>{
+        const esAdmin = String((sesionActual()?.rol || '')).toLowerCase() === 'administrador';
+        if (esAdmin) return;
+        const btnReset = kebab.querySelector('button[data-act="reset"]');
+        const btnDel   = kebab.querySelector('button[data-act="eliminar"]');
+        [btnReset, btnDel].forEach(b=>{
+          if (!b) return;
+          b.disabled = true;
+          b.setAttribute('aria-disabled','true');
+          if (b.dataset.act==='reset') b.title = 'Solo administradores pueden restablecer contraseñas';
+          if (b.dataset.act==='eliminar') b.title = 'Solo administradores pueden eliminar usuarios';
+        });
+      });
+      mo2.observe(kebab, { childList: true, subtree: true });
+    })();
+
+    const toolbar = document.querySelector('.toolbar') || document.querySelector('.card .toolbar');
+    const inpBuscarLocal = document.getElementById('buscarUsuario');
+
+    let spanCount = document.getElementById('countUsuarios');
+    if (!spanCount) {
+      spanCount = document.createElement('span');
+      spanCount.id = 'countUsuarios';
+      spanCount.className = 'muted';
+      spanCount.style.marginRight = '8px';
+      spanCount.textContent = 'Usuarios (0)';
+      toolbar?.prepend(spanCount);
+    }
+
+    let selRol = document.getElementById('filtroRol');
+    if (!selRol) {
+      selRol = document.createElement('select');
+      selRol.id = 'filtroRol';
+      selRol.title = 'Filtrar por rol';
+      selRol.style.marginRight = '8px';
+      selRol.innerHTML = `
+        <option value="todos">Todos los roles</option>
+        <option value="administrador">Administrador</option>
+        <option value="mecanico">Mecánico</option>
+        <option value="recepcion">Recepción</option>
+        <option value="gerencia">Gerencia</option>
+        <option value="calidad">Control de Calidad</option>
+        <option value="bodega">Bodega / Repuestos</option>
+      `;
+      toolbar?.prepend(selRol);
+    }
+
+    let selEstado = document.getElementById('filtroEstado');
+    if (!selEstado) {
+      selEstado = document.createElement('select');
+      selEstado.id = 'filtroEstado';
+      selEstado.title = 'Filtrar por estado';
+      selEstado.style.marginRight = '8px';
+      selEstado.innerHTML = `
+        <option value="todos">Todos</option>
+        <option value="activos">Activos</option>
+        <option value="inactivos">Inactivos</option>
+      `;
+      toolbar?.prepend(selEstado);
+    }
+
+    let __listaBase = [];
+
+    function __normalizaEstado(v){
+      if (typeof v === 'boolean') return v ? 'activos' : 'inactivos';
+      const s = String(v ?? '').toLowerCase();
+      if (s === '1' || s === 'true' || s === 'activo') return 'activos';
+      return 'inactivos';
+    }
+    function __escRegex(s){ return String(s||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+    function __highlightCell(td, query){
+      if (!td) return;
+      const q = String(query||'').trim();
+      const original = td.getAttribute('data-original-text');
+      let baseText = original ?? td.textContent;
+      if (!original) td.setAttribute('data-original-text', baseText);
+      if (!q) { td.innerHTML = escapeHtml(baseText); return; }
+      const re = new RegExp(__escRegex(q), 'ig');
+      td.innerHTML = escapeHtml(baseText).replace(re, m=>`<mark>${escapeHtml(m)}</mark>`);
+    }
+
+    function __aplicarFiltros(){
+      let arr = Array.isArray(__listaBase) ? __listaBase.slice() : [];
+      const rol = (selRol?.value || 'todos').toLowerCase();
+      const est = (selEstado?.value || 'todos').toLowerCase();
+
+      if (rol !== 'todos') arr = arr.filter(u => String(u.rol||'').toLowerCase() === rol);
+      if (est !== 'todos') arr = arr.filter(u => __normalizaEstado(u.estado) === est);
+
+      listaUsuarios = arr;
+      renderUsuarios();
+
+      const q = (inpBuscarLocal?.value || '').trim();
+      if (q) {
+        document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
+          __highlightCell(tr.children[1], q);
+          __highlightCell(tr.children[2], q);
+        });
+      } else {
+        document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
+          __highlightCell(tr.children[1], '');
+          __highlightCell(tr.children[2], '');
+        });
+      }
+
+      document.querySelectorAll('#tablaUsuarios .btn-menu')
+        .forEach(b=>b.setAttribute('aria-label','Acciones'));
+
+      spanCount.textContent = `Usuarios (${arr.length})`;
+    }
+
+    const __cargarUsuarios = cargarUsuarios;
+    cargarUsuarios = async function(q=''){
+      await __cargarUsuarios(q);
+      __listaBase = Array.isArray(window.getUsuarios?.()) ? window.getUsuarios().slice() : [];
+      __aplicarFiltros();
     };
-    inp.addEventListener('input', update);
-    update();
-  }
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    try { /* la base se setea tras cargarUsuarios */ } catch {}
-    __attachMeter('password');
-    __attachMeter('editPassword');
-  });
+    selRol?.addEventListener('change', __aplicarFiltros);
+    selEstado?.addEventListener('change', __aplicarFiltros);
 
-})();
+    let __drawerLastFocus = null;
+    const __abrirEditar = abrirEditar;
+    const __cerrarDrawer = cerrarDrawer;
+
+    abrirEditar = async function(id){
+      __drawerLastFocus = document.activeElement;
+      await __abrirEditar(id);
+      const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = false;
+      setTimeout(()=>__setupDrawerA11y(), 0);
+    };
+
+    cerrarDrawer = function(){
+      const dr = document.getElementById('drawerEditar');
+      if (dr && dr._cleanupA11y) dr._cleanupA11y();
+      __cerrarDrawer();
+      const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = true;
+      try { __drawerLastFocus?.focus(); } catch {}
+      __drawerLastFocus = null;
+    };
+
+    function __setupDrawerA11y(){
+      const dr = document.getElementById('drawerEditar');
+      if (!dr) return;
+      const focusables = dr.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) return;
+
+      focusables[0].focus();
+
+      function onKey(e){
+        if (e.key === 'Escape') { e.preventDefault(); cerrarDrawer(); }
+        if (e.key === 'Tab') {
+          const first = focusables[0];
+          const last  = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      }
+      dr.addEventListener('keydown', onKey);
+      dr._cleanupA11y = () => dr.removeEventListener('keydown', onKey);
+    }
+
+    function __pwdScore(pw){
+      const s = String(pw||'');
+      let score = 0;
+      if (s.length >= 8) score++;
+      if (/[a-z]/.test(s)) score++;
+      if (/[A-Z]/.test(s)) score++;
+      if (/[0-9]/.test(s)) score++;
+      if (/[^A-Za-z0-9]/.test(s)) score++;
+      const labels = ['Muy débil','Débil','Media','Fuerte','Muy fuerte'];
+      return { score, label: labels[Math.max(0, score-1)] || 'Muy débil' };
+    }
+    function __attachMeter(inputId){
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      let meter = inp.nextElementSibling;
+      if (!(meter && meter.classList?.contains('pwd-meter'))) {
+        meter = document.createElement('div');
+        meter.className = 'pwd-meter';
+        meter.style.fontSize = '12px';
+        meter.style.marginTop = '6px';
+        meter.style.opacity = '0.9';
+        meter.style.userSelect = 'none';
+        inp.insertAdjacentElement('afterend', meter);
+      }
+      const update = () => {
+        const { score, label } = __pwdScore(inp.value);
+        meter.textContent = `Seguridad: ${label}`;
+        meter.style.background = `linear-gradient(90deg, currentColor ${score*20}%, #e5e7eb ${score*20}%)`;
+        meter.style.padding = '4px 8px';
+        meter.style.borderRadius = '6px';
+      };
+      inp.addEventListener('input', update);
+      update();
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      try { /* la base se setea tras cargarUsuarios */ } catch {}
+      __attachMeter('password');
+      __attachMeter('editPassword');
+    });
+
+  })();
 
   (function(){
-  const KEY = 'ua_state';
-  function load(){ try { return JSON.parse(localStorage.getItem(KEY))||{}; } catch { return {}; } }
-  function save(obj){ localStorage.setItem(KEY, JSON.stringify(obj)); }
+    const KEY = 'ua_state';
+    function load(){ try { return JSON.parse(localStorage.getItem(KEY))||{}; } catch { return {}; } }
+    function save(obj){ localStorage.setItem(KEY, JSON.stringify(obj)); }
 
-  document.addEventListener('DOMContentLoaded', ()=>{
-    const st = load();
-    const applySoon = () => {
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const st = load();
+      const applySoon = () => {
+        const q   = document.getElementById('buscarUsuario');
+        const rol = document.getElementById('filtroRol');
+        const est = document.getElementById('filtroEstado');
+
+        if (q && typeof st.q === 'string') q.value = st.q;
+        if (rol && st.filtroRol)  rol.value = st.filtroRol;
+        if (est && st.filtroEstado) est.value = st.filtroEstado;
+
+        if (typeof pagUsuarios !== 'undefined') {
+          if (Number.isFinite(st.page))     pagUsuarios.page     = Math.max(1, st.page|0);
+          if (Number.isFinite(st.pageSize)) pagUsuarios.pageSize = Math.max(5, st.pageSize|0);
+        }
+        if (typeof cargarUsuarios === 'function') cargarUsuarios(q ? q.value.trim() : '');
+        if (typeof cargarBitacora === 'function') cargarBitacora();
+      };
+      setTimeout(applySoon, 120);
+    });
+
+    function persist(){
       const q   = document.getElementById('buscarUsuario');
       const rol = document.getElementById('filtroRol');
       const est = document.getElementById('filtroEstado');
-
-      if (q && typeof st.q === 'string') q.value = st.q;
-      if (rol && st.filtroRol)  rol.value = st.filtroRol;
-      if (est && st.filtroEstado) est.value = st.filtroEstado;
-
-      if (typeof pagUsuarios !== 'undefined') {
-        if (Number.isFinite(st.page))     pagUsuarios.page     = Math.max(1, st.page|0);
-        if (Number.isFinite(st.pageSize)) pagUsuarios.pageSize = Math.max(5, st.pageSize|0);
-      }
-      if (typeof cargarUsuarios === 'function') cargarUsuarios(q ? q.value.trim() : '');
-      if (typeof cargarBitacora === 'function') cargarBitacora();
-    };
-    setTimeout(applySoon, 120);
-  });
-
-  function persist(){
-    const q   = document.getElementById('buscarUsuario');
-    const rol = document.getElementById('filtroRol');
-    const est = document.getElementById('filtroEstado');
-    const st = {
-      q: q ? q.value.trim() : '',
-      filtroRol: rol ? rol.value : 'todos',
-      filtroEstado: est ? est.value : 'todos',
-      page: (pagUsuarios && pagUsuarios.page) || 1,
-      pageSize: (pagUsuarios && pagUsuarios.pageSize) || 10
-    };
-    save(st);
-  }
-
-  document.addEventListener('input', (e)=>{
-    if (e.target && e.target.id === 'buscarUsuario') persist();
-  });
-  document.addEventListener('change', (e)=>{
-    if (e.target && (e.target.id === 'filtroRol' || e.target.id === 'filtroEstado')) persist();
-  });
-
-  const _build = buildPaginador;
-  if (typeof _build === 'function') {
-    buildPaginador = function(container, state, onChange){
-      _build(container, state, function(){
-        onChange();
-        persist();
-      });
-      container?.querySelector('select')?.addEventListener('change', persist);
-    };
-  }
-
-  const _cargarUsuarios2 = cargarUsuarios;
-  if (typeof _cargarUsuarios2 === 'function') {
-    cargarUsuarios = async function(q=''){
-      const r = await _cargarUsuarios2(q);
-      persist();
-      return r;
-    };
-  }
-})();
-
-  (function(){
-  const table = document.getElementById('tablaUsuarios');
-  if (!table) return;
-
-  const HEAD_MAP = {
-    1: { key: 'usuario',      type: 'text' },
-    2: { key: 'nombre',       type: 'text' },
-    3: { key: 'rol',          type: 'text' },
-    5: { key: 'ultimoAcceso', type: 'date' }
-  };
-  let sort = { idx: null, dir: 1 };
-
-  function cmp(a,b,type){
-    if (type === 'date') {
-      const av = a ? new Date(a).getTime() : 0;
-      const bv = b ? new Date(b).getTime() : 0;
-      return av - bv;
+      const st = {
+        q: q ? q.value.trim() : '',
+        filtroRol: rol ? rol.value : 'todos',
+        filtroEstado: est ? est.value : 'todos',
+        page: (pagUsuarios && pagUsuarios.page) || 1,
+        pageSize: (pagUsuarios && pagUsuarios.pageSize) || 10
+      };
+      save(st);
     }
-    const av = String(a||'').toLowerCase();
-    const bv = String(b||'').toLowerCase();
-    return av.localeCompare(bv, 'es');
-  }
 
-  function applySort(idx){
-    if (!window.getUsuarios) return;
-    const meta = HEAD_MAP[idx];
-    if (!meta) return;
-
-    if (sort.idx === idx) sort.dir = -sort.dir;
-    else { sort.idx = idx; sort.dir = 1; }
-
-    const arr = (getUsuarios() || []).slice().sort((a,b)=> cmp(a[meta.key], b[meta.key], meta.type) * sort.dir);
-
-    window.listaUsuarios = arr;
-    if (typeof window.renderUsuarios === 'function') renderUsuarios();
-
-    const ths = table.querySelectorAll('thead th');
-    ths.forEach((th,i)=>{
-      th.removeAttribute('data-sort');
-      if (i === idx) th.setAttribute('data-sort', sort.dir === 1 ? 'asc' : 'desc');
+    document.addEventListener('input', (e)=>{
+      if (e.target && e.target.id === 'buscarUsuario') persist();
     });
-  }
+    document.addEventListener('change', (e)=>{
+      if (e.target && (e.target.id === 'filtroRol' || e.target.id === 'filtroEstado')) persist();
+    });
 
-  table.querySelectorAll('thead th').forEach((th, i)=>{
-    if (!HEAD_MAP[i]) return;
-    th.style.cursor = 'pointer';
-    th.title = 'Ordenar';
-    th.addEventListener('click', ()=>applySort(i));
-  });
+    const _build = buildPaginador;
+    if (typeof _build === 'function') {
+      buildPaginador = function(container, state, onChange){
+        _build(container, state, function(){
+          onChange();
+          persist();
+        });
+        container?.querySelector('select')?.addEventListener('change', persist);
+      };
+    }
 
-  const s = document.createElement('style');
-  s.textContent = `
-    #tablaUsuarios thead th[data-sort="asc"]::after{content:" \\25B2"; opacity:.6}
-    #tablaUsuarios thead th[data-sort="desc"]::after{content:" \\25BC"; opacity:.6}
-  `;
-  document.head.appendChild(s);
-})();
+    const _cargarUsuarios2 = cargarUsuarios;
+    if (typeof _cargarUsuarios2 === 'function') {
+      cargarUsuarios = async function(q=''){
+        const r = await _cargarUsuarios2(q);
+        persist();
+        return r;
+      };
+    }
+  })();
 
   (function(){
-  function focusBuscar(){
-    const i = document.getElementById('buscarUsuario');
-    if (i){ i.focus(); i.select(); }
-  }
-  function openCrear(){
-    const u = document.getElementById('usuario');
-    if (u){ u.focus(); }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  function tryClose(){
-    const dr = document.getElementById('drawerEditar');
-    if (dr && dr.classList.contains('open')) {
-      const btn = document.getElementById('btnCancelarEdit') || document.getElementById('btnCerrarDrawer');
-      btn?.click(); return;
-    }
-    const dlg = document.getElementById('dlgBitacoraUsuario');
-    if (dlg && typeof dlg.close === 'function' && dlg.open) { dlg.close(); }
-  }
+    const table = document.getElementById('tablaUsuarios');
+    if (!table) return;
 
-  document.addEventListener('keydown', (e)=>{
-    const tag = (e.target && e.target.tagName || '').toLowerCase();
-    const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
-
-    if (e.key === '/' && !typing){
-      e.preventDefault(); focusBuscar();
-    }
-    if (e.key.toLowerCase() === 'r' && !typing){
-      e.preventDefault();
-      const btn = document.getElementById('btnRefrescar');
-      if (btn) btn.click(); else if (typeof cargarUsuarios==='function') cargarUsuarios(document.getElementById('buscarUsuario')?.value||'');
-    }
-    if (e.key.toLowerCase() === 'n' && !typing){
-      e.preventDefault(); openCrear();
-    }
-    if (e.key === 'Escape'){
-      tryClose();
-    }
-  });
-})();
-
-  (function(){
-  let bar = document.getElementById('netBanner');
-  if (!bar){
-    bar = document.createElement('div');
-    bar.id = 'netBanner';
-    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fff3cd;border-bottom:1px solid #ffeeba;padding:6px 10px;font-size:13px;color:#856404;display:none;z-index:1200;text-align:center';
-    bar.textContent = 'Sin conexión o servidor no disponible. Intentando reconectar…';
-    document.body.appendChild(bar);
-  }
-  const show = ()=>{ bar.style.display='block'; };
-  const hide = ()=>{ bar.style.display='none'; };
-
-  window.addEventListener('online', hide);
-  window.addEventListener('offline', show);
-
-  function withRetry(fn){
-    return async function(...args){
-      try{
-        const out = await fn.apply(this, args);
-        if (navigator.onLine) hide();
-        return out;
-      }catch(e){
-        show();
-        try{
-          await new Promise(r=>setTimeout(r, 800));
-          const out2 = await fn.apply(this, args);
-          if (navigator.onLine) hide();
-          return out2;
-        }catch(e2){
-          show(); throw e2;
-        }
-      }
+    const HEAD_MAP = {
+      1: { key: 'usuario',      type: 'text' },
+      2: { key: 'nombre',       type: 'text' },
+      3: { key: 'rol',          type: 'text' },
+      5: { key: 'ultimoAcceso', type: 'date' } // usamos el mapeo en render
     };
-  }
+    let sort = { idx: null, dir: 1 };
 
-  if (typeof cargarUsuarios === 'function'){
-    cargarUsuarios = withRetry(cargarUsuarios);
-  }
-  if (typeof cargarBitacora === 'function'){
-    cargarBitacora = withRetry(cargarBitacora);
-  }
+    function cmp(a,b,type){
+      if (type === 'date') {
+        const av = a ? new Date(a).getTime() : 0;
+        const bv = b ? new Date(b).getTime() : 0;
+        return av - bv;
+      }
+      const av = String(a||'').toLowerCase();
+      const bv = String(b||'').toLowerCase();
+      return av.localeCompare(bv, 'es');
+    }
 
-  if (!navigator.onLine) show();
-})();
+    function applySort(idx){
+      if (!window.getUsuarios) return;
+      const meta = HEAD_MAP[idx];
+      if (!meta) return;
 
-(function(){
-  let overlay = document.getElementById('drawerOverlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'drawerOverlay';
-    overlay.className = 'drawer-overlay';
-    overlay.hidden = true;
-    document.body.appendChild(overlay);
-  }
+      if (sort.idx === idx) sort.dir = -sort.dir;
+      else { sort.idx = idx; sort.dir = 1; }
 
-  const _abrir = abrirEditar;
-  const _cerrar = cerrarDrawer;
+      const arr = (getUsuarios() || []).slice().sort((a,b)=>{
+        const aV = (meta.key==='ultimoAcceso') ? (a.ultimoAcceso||a.ultimoacceso||a['ultimo acceso']||a.lastAccess) : a[meta.key];
+        const bV = (meta.key==='ultimoAcceso') ? (b.ultimoAcceso||b.ultimoacceso||b['ultimo acceso']||b.lastAccess) : b[meta.key];
+        return cmp(aV, bV, meta.type) * sort.dir;
+      });
 
-  abrirEditar = async function(id){
-    await _abrir(id);
-    if (overlay) overlay.hidden = false;
-  };
+      window.listaUsuarios = arr;
+      if (typeof window.renderUsuarios === 'function') renderUsuarios();
 
-  cerrarDrawer = function(){
-    if (overlay) overlay.hidden = true;
-    _cerrar();
-  };
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th,i)=>{
+        th.removeAttribute('data-sort');
+        if (i === idx) th.setAttribute('data-sort', sort.dir === 1 ? 'asc' : 'desc');
+      });
+    }
 
-  const btnCerrar = document.getElementById('btnCerrarDrawer');
-  btnCerrar?.addEventListener('click', cerrarDrawer);
-  overlay?.addEventListener('click', cerrarDrawer);
-})();
+    table.querySelectorAll('thead th').forEach((th, i)=>{
+      if (!HEAD_MAP[i]) return;
+      th.style.cursor = 'pointer';
+      th.title = 'Ordenar';
+      th.addEventListener('click', ()=>applySort(i));
+    });
+
+    const s = document.createElement('style');
+    s.textContent = `
+      #tablaUsuarios thead th[data-sort="asc"]::after{content:" \\25B2"; opacity:.6}
+      #tablaUsuarios thead th[data-sort="desc"]::after{content:" \\25BC"; opacity:.6}
+    `;
+    document.head.appendChild(s);
+  })();
+
+  (function(){
+    function focusBuscar(){
+      const i = document.getElementById('buscarUsuario');
+      if (i){ i.focus(); i.select(); }
+    }
+    function openCrear(){
+      const u = document.getElementById('usuario');
+      if (u){ u.focus(); }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function tryClose(){
+      const dr = document.getElementById('drawerEditar');
+      if (dr && dr.classList.contains('open')) {
+        const btn = document.getElementById('btnCancelarEdit') || document.getElementById('btnCerrarDrawer');
+        btn?.click(); return;
+      }
+      const dlg = document.getElementById('dlgBitacoraUsuario');
+      if (dlg && typeof dlg.close === 'function' && dlg.open) { dlg.close(); }
+    }
+
+    document.addEventListener('keydown', (e)=>{
+      const tag = (e.target && e.target.tagName || '').toLowerCase();
+      const typing = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+      if (e.key === '/' && !typing){
+        e.preventDefault(); focusBuscar();
+      }
+      if (e.key.toLowerCase() === 'r' && !typing){
+        e.preventDefault();
+        const btn = document.getElementById('btnRefrescar');
+        if (btn) btn.click(); else if (typeof cargarUsuarios==='function') cargarUsuarios(document.getElementById('buscarUsuario')?.value||'');
+      }
+      if (e.key.toLowerCase() === 'n' && !typing){
+        e.preventDefault(); openCrear();
+      }
+      if (e.key === 'Escape'){
+        tryClose();
+      }
+    });
+  })();
+
+  (function(){
+    let bar = document.getElementById('netBanner');
+    if (!bar){
+      bar = document.createElement('div');
+      bar.id = 'netBanner';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fff3cd;border-bottom:1px solid #ffeeba;padding:6px 10px;font-size:13px;color:#856404;display:none;z-index:1200;text-align:center';
+      bar.textContent = 'Sin conexión o servidor no disponible. Intentando reconectar…';
+      document.body.appendChild(bar);
+    }
+    const show = ()=>{ bar.style.display='block'; };
+    const hide = ()=>{ bar.style.display='none'; };
+
+    window.addEventListener('online', hide);
+    window.addEventListener('offline', show);
+
+    function withRetry(fn){
+      return async function(...args){
+        try{
+          const out = await fn.apply(this, args);
+          if (navigator.onLine) hide();
+          return out;
+        }catch(e){
+          show();
+          try{
+            await new Promise(r=>setTimeout(r, 800));
+            const out2 = await fn.apply(this, args);
+            if (navigator.onLine) hide();
+            return out2;
+          }catch(e2){
+            show(); throw e2;
+          }
+        }
+      };
+    }
+
+    if (typeof cargarUsuarios === 'function'){
+      cargarUsuarios = withRetry(cargarUsuarios);
+    }
+    if (typeof cargarBitacora === 'function'){
+      cargarBitacora = withRetry(cargarBitacora);
+    }
+
+    if (!navigator.onLine) show();
+  })();
+
+  (function(){
+    let overlay = document.getElementById('drawerOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'drawerOverlay';
+      overlay.className = 'drawer-overlay';
+      overlay.hidden = true;
+      document.body.appendChild(overlay);
+    }
+
+    const _abrir = abrirEditar;
+    const _cerrar = cerrarDrawer;
+
+    abrirEditar = async function(id){
+      await _abrir(id);
+      if (overlay) overlay.hidden = false;
+    };
+
+    cerrarDrawer = function(){
+      if (overlay) overlay.hidden = true;
+      _cerrar();
+    };
+
+    const btnCerrar = document.getElementById('btnCerrarDrawer');
+    btnCerrar?.addEventListener('click', cerrarDrawer);
+    overlay?.addEventListener('click', cerrarDrawer);
+  })();
 
 })();
