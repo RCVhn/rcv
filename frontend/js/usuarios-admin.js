@@ -102,10 +102,27 @@
   // fetch con base y CORS (con logs de diagnóstico)
   async function apiFetch(path, options = {}) {
     const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
+
+    // 🔐 Lee token de localStorage
+    const token =
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt') ||
+      localStorage.getItem('access_token');
+
     const opts = {
       ...options,
       mode: 'cors',
-      headers: { ...(options.headers || {}), ...actorHeaders() },
+      headers: {
+        ...(options.headers || {}),
+        ...actorHeaders(),
+        // 🔐 Agrega Authorization si hay token
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/json',
+        'Content-Type':
+          (options.body && 'application/json') ||
+          (options.headers && options.headers['Content-Type']) ||
+          undefined
+      },
       credentials: 'omit', // usa 'include' solo si tu API maneja cookies/sesión
     };
     const res = await fetch(url, opts);
@@ -745,9 +762,23 @@
     url.searchParams.set('pageSize', String(pagUsuarios.pageSize));
     if (pagUsuarios.q) url.searchParams.set('q', pagUsuarios.q);
 
+    // 🔐 token para este fetch directo
+    const token =
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt') ||
+      localStorage.getItem('access_token');
+
     let resp;
     try{
-      resp = await fetch(url.toString(), { headers: { 'Accept':'application/json', ...actorHeaders() }, mode:'cors', credentials:'omit' });
+      resp = await fetch(url.toString(), {
+        headers: {
+          'Accept':'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...actorHeaders()
+        },
+        mode:'cors',
+        credentials:'omit'
+      });
     }catch(e){
       console.error('[usuarios] fetch error', e);
       renderEmptyRow(tbody, 7, 'Error de red cargando usuarios');
@@ -810,9 +841,23 @@
     url.searchParams.set('pageSize', String(pagBitacora.pageSize));
     if (pagBitacora.q) url.searchParams.set('q', pagBitacora.q);
 
+    // 🔐 token para este fetch directo
+    const token =
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt') ||
+      localStorage.getItem('access_token');
+
     let resp;
     try{
-      resp = await fetch(url.toString(), { headers: { 'Accept':'application/json', ...actorHeaders() }, mode:'cors', credentials:'omit' });
+      resp = await fetch(url.toString(), {
+        headers: {
+          'Accept':'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...actorHeaders()
+        },
+        mode:'cors',
+        credentials:'omit'
+      });
     }catch(e){
       console.error('[bitacora] fetch error', e);
       renderEmptyRow(tbodyBit, 5, 'Error de red cargando bitácora');
