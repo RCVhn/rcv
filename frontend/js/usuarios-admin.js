@@ -159,18 +159,12 @@
     const perms = Array.isArray(u?.permisos) ? u.permisos : [];
     return rol === 'administrador' || perms.includes('usuarios:admin');
   }
-  function __readUser(){
-    try { return JSON.parse(localStorage.getItem('usuarioActual')) || {}; }
-    catch { return {}; }
-  }
+  function __readUser(){ try { return JSON.parse(localStorage.getItem('usuarioActual')) || {}; } catch { return {}; } }
   function __closeOverlays(){
-    // Drawer editar
     const dr = document.getElementById('drawerEditar');
     if (dr) { dr.classList.remove('open'); dr.setAttribute('aria-hidden','true'); }
-    // Modal permisos
     const mp = document.getElementById('modalPerms');
     if (mp) mp.classList.remove('open');
-    // Dialog bitácora
     const dlg = document.getElementById('dlgBitacoraUsuario');
     if (dlg && typeof dlg.close === 'function') dlg.close();
   }
@@ -182,38 +176,28 @@
       setTimeout(()=>{ location.href = 'admin.html'; }, 800);
     }
   }
-  // 1) Mismo navegador/pestaña: cambios en localStorage
-  window.addEventListener('storage', (e)=>{
-    if (e.key === 'usuarioActual') __enforceAccess();
-  });
-  // 2) Opcional: verificación periódica con backend si existe AuthAPI.verify()
-  let __permPoll = setInterval(async ()=>{
-    try {
-      if (!window.API || !window.API.AuthAPI || !window.API.AuthAPI.verify) return;
-      const out = await window.API.AuthAPI.verify(); // { usuario: {..., rol, permisos } } o variantes
-
-      // ✅ admite varios formatos de respuesta
-      let srv = null;
-      if (out && typeof out === 'object') {
-        if (out.usuario) srv = out.usuario;
-        else if (out.user) srv = out.user;
-        else if (out.currentUser) srv = out.currentUser;
-        else if (out.me) srv = out.me;
-        else if (out.data && out.data.usuario) srv = out.data.usuario;
-        else if ('rol' in out || 'permisos' in out) srv = out;
+  window.addEventListener('storage', (e)=>{ if (e.key === 'usuarioActual') __enforceAccess(); });
+  let __permPoll = setInterval(async ()=>{ try {
+    if (!window.API || !window.API.AuthAPI || !window.API.AuthAPI.verify) return;
+    const out = await window.API.AuthAPI.verify();
+    let srv = null;
+    if (out && typeof out === 'object') {
+      if (out.usuario) srv = out.usuario;
+      else if (out.user) srv = out.user;
+      else if (out.currentUser) srv = out.currentUser;
+      else if (out.me) srv = out.me;
+      else if (out.data && out.data.usuario) srv = out.data.usuario;
+      else if ('rol' in out || 'permisos' in out) srv = out;
+    }
+    if (srv) {
+      const saved = __readUser();
+      const changed = (saved.rol !== srv.rol) || (JSON.stringify(saved.permisos||[]) !== JSON.stringify(srv.permisos||[]));
+      if (changed) {
+        localStorage.setItem('usuarioActual', JSON.stringify({ ...saved, ...srv }));
+        __enforceAccess();
       }
-
-      if (srv) {
-        const saved = __readUser();
-        const changed = (saved.rol !== srv.rol) ||
-                        (JSON.stringify(saved.permisos||[]) !== JSON.stringify(srv.permisos||[]));
-        if (changed) {
-          localStorage.setItem('usuarioActual', JSON.stringify({ ...saved, ...srv }));
-          __enforceAccess(); // en esta pestaña no dispara 'storage'
-        }
-      }
-    } catch(_e){ /* silencioso */ }
-  }, 5000);
+    }
+  } catch(_e){} }, 5000);
 
   // --- Helpers ---
   const $ = (s) => document.querySelector(s);
@@ -222,6 +206,13 @@
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function hoy(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
   function getUsuarioActual(){ try{const u=JSON.parse(localStorage.getItem('usuarioActual')); return (u&&u.usuario)||'';}catch{return '';} }
+
+  // ✅ Email helpers
+  function isValidEmail(email) {
+    const s = String(email || '').trim();
+    // Sencilla y efectiva para UI (el backend también valida)
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
 
   // Helper de creación de nodos (para paginación/skeleton)
   function __create(el, attrs={}, children=[]){
@@ -240,7 +231,7 @@
   // ===== Branding / metadatos para exportar/imprimir =====
   const BRAND = {
     nombre: 'Taller RCV',
-    logo: 'img/logo.png', // ajusta si tu logo está en otra ruta
+    logo: 'img/logo.png',
   };
   function nowStr() {
     const d = new Date();
@@ -407,15 +398,11 @@
 
   function discoverPagePerms() {
     const items = [];
-
-    // 1) links id="navX"
     document.querySelectorAll('a[id^="nav"]').forEach(a => {
       const key = 'page:' + a.id.replace(/^nav/, '').toLowerCase();
       const label = (a.textContent || a.id).trim();
       items.push({ key, label });
     });
-
-    // 2) elementos con data-page-key="x"  -> page:x
     document.querySelectorAll('[data-page-key]').forEach(el => {
       const raw = String(el.getAttribute('data-page-key')||'').trim();
       if (!raw) return;
@@ -423,16 +410,12 @@
       const label = (el.textContent || raw).trim();
       items.push({ key, label });
     });
-
-    // 3) Páginas personalizadas desde localStorage
-    const custom = loadCustomPages(); // [{slug,label}]
+    const custom = loadCustomPages();
     custom.forEach(p => {
       const key = 'page:' + normalizeSlug(p.slug);
       const label = String(p.label || p.slug).trim();
       items.push({ key, label });
     });
-
-    // 4) Fallback manual si no encontró nada (si usas window.APP_PAGES)
     if (!items.length && Array.isArray(window.APP_PAGES)) {
       window.APP_PAGES.forEach(k => {
         const key = 'page:' + String(k).toLowerCase();
@@ -440,8 +423,6 @@
         items.push({ key, label });
       });
     }
-
-    // Únicos
     const seen = new Set();
     return items.filter(p => !seen.has(p.key) && seen.add(p.key));
   }
@@ -501,8 +482,7 @@
       </div>
     `;
 
-    // --- Gestor de páginas ---
-    const custom = loadCustomPages(); // [{slug,label}]
+    const custom = loadCustomPages();
     const chips = custom.length
       ? custom.map(p=>`
           <span class="perm-chip">
@@ -530,7 +510,6 @@
       </div>
     `;
 
-    // === Barra de plantillas de rol ===
     const tplBar = `
       <div class="perm-group" style="margin-bottom:8px">
         <h4>Plantillas de rol</h4>
@@ -544,17 +523,14 @@
 
     PERM_BODY.innerHTML = tplBar + htmlAcciones + htmlPaginas;
 
-    // Handlers de plantillas
     PERM_BODY.querySelectorAll('.tpl-btn').forEach(b=>{
       b.onclick = ()=>{
         const role = b.getAttribute('data-role');
         const set = new Set(ROLE_TEMPLATES[role] || []);
-        // marca las casillas según la plantilla
         PERM_BODY.querySelectorAll('input.perm-chk').forEach(chk=>{
           const val = chk.value;
-          chk.checked = set.has(val) || chk.checked; // no desmarca lo que ya tenía
+          chk.checked = set.has(val) || chk.checked;
         });
-        // asegurar que admin conserve usuarios:admin si estoy editándome
         const meUser = getUsuarioActual();
         if (meUser && meUser === user.usuario) {
           const adminChk = PERM_BODY.querySelector('input.perm-chk[value="usuarios:admin"]');
@@ -565,7 +541,6 @@
     const btnClear = document.getElementById('tplClear');
     btnClear && (btnClear.onclick = ()=>{
       PERM_BODY.querySelectorAll('input.perm-chk').forEach(chk=>chk.checked=false);
-      // si estoy editando mi propio usuario admin, no permitir desmarcar usuarios:admin
       const meUser = getUsuarioActual();
       if (meUser && meUser === user.usuario && String(sesionActual()?.rol||'').toLowerCase()==='administrador') {
         const adminChk = PERM_BODY.querySelector('input.perm-chk[value="usuarios:admin"]');
@@ -573,10 +548,9 @@
       }
     });
 
-    // Handlers para añadir/quitar páginas, re-render manteniendo checks
     const btnAdd = document.getElementById('btnAddPage');
     btnAdd && (btnAdd.onclick = () => {
-      const keep = new Set(collectModalPerms()); // conservar checks ya tildados
+      const keep = new Set(collectModalPerms());
       const slug = normalizeSlug(document.getElementById('permPageSlug').value);
       const label = String(document.getElementById('permPageLabel').value||'').trim() || slug;
       if (!slug) return alert('Clave inválida. Usa letras/números, guiones o guion bajo.');
@@ -585,7 +559,7 @@
       list.push({ slug, label });
       saveCustomPages(list);
       const u2 = { ...user, permisos: Array.from(keep) };
-      renderPermModal(u2); // re-dibujar con la nueva página
+      renderPermModal(u2);
     });
 
     PERM_BODY.querySelectorAll('.btnDelPage').forEach(btn=>{
@@ -619,7 +593,6 @@
   }
   function renderEmptyRow(tbodyEl, cols, msg="No hay datos"){
     if (!tbodyEl) return;
-    tbodyEl.innerHTML = "";
     const tr = __create('tr', { class:'empty-row' });
     const td = __create('td', { colspan:String(cols), text:msg });
     tr.appendChild(td);
@@ -627,7 +600,7 @@
   }
 
   // ===== Paginador =====
-  function ensurePaginador(key){ // key: 'usuarios' | 'bitacora'
+  function ensurePaginador(key){
     const table = key==='usuarios' ? $('#tablaUsuarios') : $('#tablaBitacora');
     if(!table) return null;
     let cont = document.getElementById(`paginador-${key}`);
@@ -671,7 +644,7 @@
     container.appendChild(sel);
   }
 
-  // ====== Tabla Usuarios (con menú 3 puntos y botón Permisos) ======
+  // ====== Tabla Usuarios ======
   function renderUsuarios() {
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -681,7 +654,6 @@
       tbody.appendChild(tr);
       return;
     }
-    // base para numeración por página
     const baseIndex = ((pagUsuarios.page || 1) - 1) * (pagUsuarios.pageSize || listaUsuarios.length || 10);
 
     listaUsuarios.forEach((u, idx) => {
@@ -760,17 +732,14 @@
   async function cargarUsuarios(q='') {
     if (!tbody) return;
 
-    // actualiza estado de búsqueda y resetea página si cambió
     if (typeof q === 'string') {
       const newQ = q.trim();
       if (newQ !== (pagUsuarios.q||'')) { pagUsuarios.page = 1; }
       pagUsuarios.q = newQ;
     }
 
-    // skeleton
     renderSkeletonRows(tbody, 7, 6);
 
-    // construir URL paginada (soporta API vieja/array o nueva/objeto)
     const url = new URL(`${API_BASE}/usuarios`);
     url.searchParams.set('page', String(pagUsuarios.page));
     url.searchParams.set('pageSize', String(pagUsuarios.pageSize));
@@ -798,7 +767,6 @@
     let total = 0, page = pagUsuarios.page, pageSize = pagUsuarios.pageSize;
 
     if (Array.isArray(json)) {
-      // API antigua: devuelve array completo -> paginación en cliente
       const all = json;
       total = all.length;
       page = Math.max(1, Number(pagUsuarios.page) || 1);
@@ -818,7 +786,6 @@
 
     if (!items.length) {
       renderEmptyRow(tbody, 7, pagUsuarios.q ? 'Sin resultados para tu búsqueda' : 'Aún no hay usuarios');
-      // paginador igualmente visible para mantener UI consistente
       const cont = ensurePaginador('usuarios');
       cont && buildPaginador(cont, pagUsuarios, ()=>cargarUsuarios(pagUsuarios.q||''));
       listaUsuarios = [];
@@ -864,7 +831,6 @@
     let total = 0, page = pagBitacora.page, pageSize = pagBitacora.pageSize;
 
     if (Array.isArray(json)) {
-      // API antigua: devuelve array completo -> paginación en cliente
       const all = json;
       total = all.length;
       page = Math.max(1, Number(pagBitacora.page) || 1);
@@ -891,7 +857,6 @@
     }
 
     listaBitacora = items;
-    // aplicar filtros locales si hay panel
     const filtered = applyBitFilters ? applyBitFilters(listaBitacora) : listaBitacora;
     renderBitacora(filtered);
 
@@ -904,18 +869,24 @@
     e.preventDefault();
     const usuario = $('#usuario').value.trim();
     const nombre = $('#nombre').value.trim();
+    const email  = ($('#email')?.value || '').trim().toLowerCase();
     const rol = $('#rol').value;
     const password = $('#password').value;
     const forzarCambio = $('#forzarCambio').checked;
-    if (!usuario || !nombre || !rol || !password) {
+
+    // Validaciones con email requerido
+    if (!usuario || !nombre || !email || !rol || !password) {
       showToast('Completa todos los campos.','warning');
       return msgCrear('Completa todos los campos.');
     }
+    if (!isValidEmail(email)) {
+      showToast('El correo electrónico no es válido.','warning');
+      return msgCrear('El correo electrónico no es válido.');
+    }
 
     try {
-      await API.UsuariosAPI.crear({ usuario, nombre, rol, password, forzarCambio });
+      await API.UsuariosAPI.crear({ usuario, nombre, email, rol, password, forzarCambio });
       e.target.reset(); msgCrear('');
-      // al crear, regresar a la primera página para ver el nuevo
       pagUsuarios.page = 1;
       await cargarUsuarios(inpBuscar?.value || '');
       await cargarBitacora();
@@ -981,13 +952,10 @@
         const user = await API.UsuariosAPI.obtener(id);
         renderPermModal(user);
         openPermModal();
-        // Guardar permisos
         const saveBtn = document.getElementById('btnSavePerms');
         saveBtn.onclick = async () => {
           try {
             const permisos = collectModalPerms();
-
-            // ⚠️ Bloqueo autodemoción: si me edito y soy admin, no quitar 'usuarios:admin'
             const meUser = getUsuarioActual();
             const soyYo = (meUser && meUser === user.usuario);
             const soyAdminActual = String(sesionActual()?.rol || '').toLowerCase() === 'administrador';
@@ -995,16 +963,13 @@
               showToast('No puedes quitarte el permiso de administrador a ti mismo.','warning');
               return;
             }
-
             await API.UsuariosAPI.actualizarPermisos(user.id, permisos);
-            // si me edité a mí mismo, replica en localStorage (para topbar/perms)
             if (soyYo) {
               let meObj = {}; try { meObj = JSON.parse(localStorage.getItem('usuarioActual')) || {}; } catch {}
               meObj.permisos = permisos;
               localStorage.setItem('usuarioActual', JSON.stringify(meObj));
               showToast('Se actualizaron tus permisos. Se recargará la página.','success');
               window.__requestAppReload ? window.__requestAppReload(650) : setTimeout(()=>location.reload(), 650);
-
               return;
             }
             await cargarBitacora();
@@ -1026,7 +991,6 @@
       if (!ok) return;
       try {
         await API.UsuariosAPI.eliminar(id);
-        // si borré el último de la página y hay páginas previas, retroceder una
         if (listaUsuarios.length === 1 && pagUsuarios.page > 1) pagUsuarios.page--;
         await cargarUsuarios(inpBuscar?.value || '');
         await cargarBitacora();
@@ -1053,8 +1017,12 @@
       $('#editUsuario').value = u.usuario;
       $('#editNombre').value = u.nombre;
       $('#editRol').value = u.rol;
+      // ✅ email al abrir edición (si el backend lo devuelve)
+      if (document.getElementById('editEmail')) {
+        document.getElementById('editEmail').value = (u.email || '');
+      }
       $('#editPassword').value = '';
-      $('#editForzarCambio').checked = !!u.forzarCambio; // <-- corregido
+      $('#editForzarCambio').checked = !!u.forzarCambio;
       drawer && drawer.classList.add('open');
       drawer && drawer.setAttribute('aria-hidden','false');
     }catch(e){ showToast(e.message,'error'); }
@@ -1078,7 +1046,8 @@
     const nombre = $('#editNombre')?.value?.trim();
     const rol = $('#editRol')?.value;
     const password = $('#editPassword')?.value;
-    const forzarCambio = $('#editForzarCambio')?.checked; // <-- corregido
+    const forzarCambio = $('#editForzarCambio')?.checked;
+    const email = ($('#editEmail')?.value || '').trim().toLowerCase();
 
     if (!Number.isFinite(id) || id <= 0) {
       msgEditar('ID de usuario inválido. Vuelve a abrir la edición.');
@@ -1090,6 +1059,17 @@
       showToast('Completa los campos requeridos.','warning');
       return msgEditar('Completa los campos requeridos.');
     }
+    // ✅ si existe el campo email en el drawer, exigir formato válido
+    if (document.getElementById('editEmail')) {
+      if (!email) {
+        showToast('El correo electrónico es obligatorio.','warning');
+        return msgEditar('El correo electrónico es obligatorio.');
+      }
+      if (!isValidEmail(email)) {
+        showToast('El correo electrónico no es válido.','warning');
+        return msgEditar('El correo electrónico no es válido.');
+      }
+    }
 
     const btn = btnGuardarEdit;
     btn && (btn.disabled = true);
@@ -1098,8 +1078,8 @@
     try{
       const body = { nombre, rol, forzarCambio };
       if (password) body.password = password;
+      if (document.getElementById('editEmail')) body.email = email;
 
-      // ⚠️ Bloqueo: si edito MI propio usuario y soy admin, no puedo bajar mi rol
       const me = sesionActual() || {};
       const editedUser = $('#editUsuario').value?.trim();
       const soyYo = (me?.usuario || '') === (editedUser || '');
@@ -1113,13 +1093,12 @@
         return;
       }
 
-      console.debug('PUT /usuarios/:id', { id, body });
       await API.UsuariosAPI.actualizar(id, body);
 
-      // Si edité mi propio usuario, actualiza local (nombre/rol) y recarga
       let meObj = {}; try { meObj = JSON.parse(localStorage.getItem('usuarioActual')) || {}; } catch {}
       if (meObj && meObj.usuario === editedUser) {
         meObj.nombre = nombre; meObj.rol = rol;
+        if (body.email) meObj.email = body.email;
         localStorage.setItem('usuarioActual', JSON.stringify(meObj));
         showToast('Se actualizaron tus datos. Se recargará la página.','success');
         window.__requestAppReload ? window.__requestAppReload(650) : setTimeout(()=>location.reload(), 650);
@@ -1145,7 +1124,6 @@
   inpBuscar && inpBuscar.addEventListener('input', ()=>{
     clearTimeout(buscarTimer);
     buscarTimer = setTimeout(()=>{
-      // al buscar, reset a primera página
       pagUsuarios.page = 1;
       cargarUsuarios(inpBuscar.value.trim());
     }, 250);
@@ -1159,7 +1137,7 @@
       ['Reporte:', 'Usuarios'],
       ['Generado:', nowStr()],
       ['Por:', actorNombre()],
-      [''] // línea vacía
+      ['']
     ];
     const rows = [
       ['#','Usuario','Nombre','Rol','Estado','Último acceso'],
@@ -1192,7 +1170,7 @@
     descargarCSV([...meta, ...data], `bitacora-${hoy()}.csv`);
   });
 
-  // --- Exportar: Imprimir con logo + metadatos (puedes "Guardar como PDF") ---
+  // --- Exportar: Imprimir con logo + metadatos ---
   btnExportUsuarios && btnExportUsuarios.addEventListener('click', ()=>imprimirTabla('#tablaUsuarios','Usuarios - Taller RCV'));
   btnExportBitacora && btnExportBitacora.addEventListener('click', ()=>imprimirTabla('#tablaBitacora','Bitácora - Taller RCV'));
 
@@ -1254,7 +1232,6 @@
   const tabla = document.querySelector('#tablaUsuarios tbody');
   if (!tabla) return;
 
-  // Crear el contenedor del menú si no existe (no necesitas tocar el HTML)
   let menu = document.getElementById('kebabMenu');
   if (!menu) {
     menu = document.createElement('div');
@@ -1290,7 +1267,6 @@
   }
 
   function positionMenu(btn) {
-    // Mostrar para medir tamaño
     menu.style.display = 'block';
     menu.setAttribute('aria-hidden', 'false');
 
@@ -1304,7 +1280,6 @@
     let left = window.scrollX + rect.left;
     let top  = window.scrollY + rect.bottom + 6;
 
-    // Evitar desbordes
     if (left + mw > window.scrollX + vw) {
       left = window.scrollX + rect.right - mw;
     }
@@ -1315,14 +1290,13 @@
     menu.style.left = `${left}px`;
     menu.style.top  = `${top}px`;
 
-    // foco al primer item
     const first = menu.querySelector('button[role="menuitem"]:not([disabled])');
     first?.focus();
   }
 
   function openKebabMenu(btn, u) {
     if (!u) return;
-    closeKebabMenu(); // cierra si hay otro abierto
+    closeKebabMenu();
     currentBtn = btn;
     currentUser = u;
     currentBtn.setAttribute('aria-expanded', 'true');
@@ -1336,7 +1310,6 @@
     menu.style.display = 'none';
     menu.setAttribute('aria-hidden', 'true');
     if (currentBtn) currentBtn.setAttribute('aria-expanded', 'false');
-    // devolver foco al botón que abrió
     currentBtn?.focus();
     currentBtn = null;
     currentUser = null;
@@ -1381,20 +1354,14 @@
     }
   }
 
-  // CAPTURA: ahora NO bloqueamos el click; dejamos que el listener de la tabla
-  // abra la fila expandible con tus botones (toggleMenuRow). Solo cerramos flotante.
   tabla.addEventListener('click', async function (e) {
     const btn = e.target.closest('.kebab-btn, .btn-menu');
     if (!btn) return;
-
     if (!/kebab-btn|btn-menu/.test(btn.className)) return;
-
-    // ⬇️ cambio clave: no preventDefault / no stopPropagation / no abrir menú flotante
     closeKebabMenu();
     return;
-  }, true); // capture: true
+  }, true);
 
-  // (El resto se conserva; este menú no se abre ya en captura)
   menu.addEventListener('click', async function (e) {
     const item = e.target.closest('button[role="menuitem"]');
     if (!item || !currentUser) return;
@@ -1421,8 +1388,6 @@
           saveBtn.onclick = async () => {
             try {
               const permisos = collectModalPerms();
-
-              // ⚠️ Bloqueo autodemoción también aquí
               const meUser = getUsuarioActual();
               const soyYo = (meUser && meUser === user.usuario);
               const soyAdminActual = String(sesionActual()?.rol || '').toLowerCase() === 'administrador';
@@ -1430,7 +1395,6 @@
                 showToast('No puedes quitarte el permiso de administrador a ti mismo.','warning');
                 return;
               }
-
               await API.UsuariosAPI.actualizarPermisos(user.id, permisos);
 
               const meUser2 = getUsuarioActual();
@@ -1516,9 +1480,8 @@
 })();
   });
 
-  // ===================== ENHANCEMENTS: roles + filtros + contador + highlight + a11y + meter =====================
+  // ===================== ENHANCEMENTS =====================
 (function(){
-  // --------- 1) Reglas por rol en BOTONES de la fila (sin tocar tu render) ----------
   const tbody = document.querySelector('#tablaUsuarios tbody');
 
   function __applyRoleGuardsToRow(menuRow, user){
@@ -1547,7 +1510,6 @@
     }
   }
 
-  // Observa cuando se inserta la fila de menú para aplicar las reglas
   if (tbody) {
     const mo = new MutationObserver((muts)=>{
       muts.forEach(m=>{
@@ -1565,7 +1527,6 @@
     mo.observe(tbody, { childList: true });
   }
 
-  // --------- 2) Reglas por rol también en el KEBAB flotante (sin tocar tu IIFE) ----------
   (function watchKebab(){
     const kebab = document.getElementById('kebabMenu');
     if (!kebab) {
@@ -1588,11 +1549,9 @@
     mo2.observe(kebab, { childList: true, subtree: true });
   })();
 
-  // --------- 3) Contador + Filtros (Rol/Estado) + Resaltado de búsqueda ----------
   const toolbar = document.querySelector('.toolbar') || document.querySelector('.card .toolbar');
   const inpBuscarLocal = document.getElementById('buscarUsuario');
 
-  // Contador
   let spanCount = document.getElementById('countUsuarios');
   if (!spanCount) {
     spanCount = document.createElement('span');
@@ -1603,7 +1562,6 @@
     toolbar?.prepend(spanCount);
   }
 
-  // Filtro por Rol
   let selRol = document.getElementById('filtroRol');
   if (!selRol) {
     selRol = document.createElement('select');
@@ -1622,7 +1580,6 @@
     toolbar?.prepend(selRol);
   }
 
-  // Filtro por Estado
   let selEstado = document.getElementById('filtroEstado');
   if (!selEstado) {
     selEstado = document.createElement('select');
@@ -1658,7 +1615,6 @@
   }
 
   function __aplicarFiltros(){
-    // Partimos de la última lista cargada desde backend (página actual)
     let arr = Array.isArray(__listaBase) ? __listaBase.slice() : [];
     const rol = (selRol?.value || 'todos').toLowerCase();
     const est = (selEstado?.value || 'todos').toLowerCase();
@@ -1666,16 +1622,14 @@
     if (rol !== 'todos') arr = arr.filter(u => String(u.rol||'').toLowerCase() === rol);
     if (est !== 'todos') arr = arr.filter(u => __normalizaEstado(u.estado) === est);
 
-    // Pintamos usando tu render
-    listaUsuarios = arr;               // usamos tu misma variable
-    renderUsuarios();                  // y tu mismo renderer
+    listaUsuarios = arr;
+    renderUsuarios();
 
-    // Resaltado de término de búsqueda (solo visual sobre la página actual)
     const q = (inpBuscarLocal?.value || '').trim();
     if (q) {
       document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
-        __highlightCell(tr.children[1], q); // Usuario
-        __highlightCell(tr.children[2], q); // Nombre
+        __highlightCell(tr.children[1], q);
+        __highlightCell(tr.children[2], q);
       });
     } else {
       document.querySelectorAll('#tablaUsuarios tbody tr').forEach(tr=>{
@@ -1684,15 +1638,12 @@
       });
     }
 
-    // Accesibilidad básica al botón de acciones
     document.querySelectorAll('#tablaUsuarios .btn-menu')
       .forEach(b=>b.setAttribute('aria-label','Acciones'));
 
-    // Contador (de la página actual filtrada)
     spanCount.textContent = `Usuarios (${arr.length})`;
   }
 
-  // Envolvemos cargarUsuarios para almacenar base y aplicar filtros cada vez
   const __cargarUsuarios = cargarUsuarios;
   cargarUsuarios = async function(q=''){
     await __cargarUsuarios(q);
@@ -1700,11 +1651,9 @@
     __aplicarFiltros();
   };
 
-  // Cambios de filtros en vivo
   selRol?.addEventListener('change', __aplicarFiltros);
   selEstado?.addEventListener('change', __aplicarFiltros);
 
-  // --------- 4) A11y del drawer (Esc + trampa de foco) ----------
   let __drawerLastFocus = null;
 const __abrirEditar = abrirEditar;
 const __cerrarDrawer = cerrarDrawer;
@@ -1712,7 +1661,6 @@ const __cerrarDrawer = cerrarDrawer;
 abrirEditar = async function(id){
   __drawerLastFocus = document.activeElement;
   await __abrirEditar(id);
-  // 👇 prende overlay
   const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = false;
   setTimeout(()=>__setupDrawerA11y(), 0);
 };
@@ -1721,7 +1669,6 @@ cerrarDrawer = function(){
   const dr = document.getElementById('drawerEditar');
   if (dr && dr._cleanupA11y) dr._cleanupA11y();
   __cerrarDrawer();
-  // 👇 apaga overlay
   const ov = document.getElementById('drawerOverlay'); if (ov) ov.hidden = true;
   try { __drawerLastFocus?.focus(); } catch {}
   __drawerLastFocus = null;
@@ -1748,7 +1695,6 @@ cerrarDrawer = function(){
     dr._cleanupA11y = () => dr.removeEventListener('keydown', onKey);
   }
 
-  // --------- 5) Medidor de fuerza de contraseña ----------
   function __pwdScore(pw){
     const s = String(pw||'');
     let score = 0;
@@ -1784,7 +1730,6 @@ cerrarDrawer = function(){
     update();
   }
 
-  // Arranque inicial
   document.addEventListener('DOMContentLoaded', ()=>{
     try { /* la base se setea tras cargarUsuarios */ } catch {}
     __attachMeter('password');
@@ -1793,10 +1738,7 @@ cerrarDrawer = function(){
 
 })();
 
-  /* ===========================
-     FINAL TOUCH 1: Persistencia de estado (búsqueda, filtros, paginación)
-     =========================== */
-(function(){
+  (function(){
   const KEY = 'ua_state';
   function load(){ try { return JSON.parse(localStorage.getItem(KEY))||{}; } catch { return {}; } }
   function save(obj){ localStorage.setItem(KEY, JSON.stringify(obj)); }
@@ -1819,7 +1761,7 @@ cerrarDrawer = function(){
       if (typeof cargarUsuarios === 'function') cargarUsuarios(q ? q.value.trim() : '');
       if (typeof cargarBitacora === 'function') cargarBitacora();
     };
-    setTimeout(applySoon, 120); // da tiempo a que se inyecten filtros
+    setTimeout(applySoon, 120);
   });
 
   function persist(){
@@ -1843,7 +1785,6 @@ cerrarDrawer = function(){
     if (e.target && (e.target.id === 'filtroRol' || e.target.id === 'filtroEstado')) persist();
   });
 
-  // Hook a paginador local
   const _build = buildPaginador;
   if (typeof _build === 'function') {
     buildPaginador = function(container, state, onChange){
@@ -1855,7 +1796,6 @@ cerrarDrawer = function(){
     };
   }
 
-  // Hook a cargarUsuarios ya envuelto por tus mejoras
   const _cargarUsuarios2 = cargarUsuarios;
   if (typeof _cargarUsuarios2 === 'function') {
     cargarUsuarios = async function(q=''){
@@ -1866,10 +1806,7 @@ cerrarDrawer = function(){
   }
 })();
 
-  /* ===========================
-     FINAL TOUCH 2: Ordenamiento por columnas (usuario, nombre, rol, último acceso)
-     =========================== */
-(function(){
+  (function(){
   const table = document.getElementById('tablaUsuarios');
   if (!table) return;
 
@@ -1902,11 +1839,9 @@ cerrarDrawer = function(){
 
     const arr = (getUsuarios() || []).slice().sort((a,b)=> cmp(a[meta.key], b[meta.key], meta.type) * sort.dir);
 
-    // reusa tu renderer
     window.listaUsuarios = arr;
     if (typeof window.renderUsuarios === 'function') renderUsuarios();
 
-    // marca encabezado
     const ths = table.querySelectorAll('thead th');
     ths.forEach((th,i)=>{
       th.removeAttribute('data-sort');
@@ -1929,10 +1864,7 @@ cerrarDrawer = function(){
   document.head.appendChild(s);
 })();
 
-  /* ===========================
-     FINAL TOUCH 3: Atajos de teclado (/, r, n, Esc)
-     =========================== */
-(function(){
+  (function(){
   function focusBuscar(){
     const i = document.getElementById('buscarUsuario');
     if (i){ i.focus(); i.select(); }
@@ -1973,10 +1905,7 @@ cerrarDrawer = function(){
   });
 })();
 
-  /* ===========================
-     FINAL TOUCH 4: Banner offline + reintento suave
-     =========================== */
-(function(){
+  (function(){
   let bar = document.getElementById('netBanner');
   if (!bar){
     bar = document.createElement('div');
@@ -2018,13 +1947,10 @@ cerrarDrawer = function(){
     cargarBitacora = withRetry(cargarBitacora);
   }
 
-  // Si ya estamos offline al entrar
   if (!navigator.onLine) show();
 })();
 
-/* ==== Control de overlay del drawer (igual que clientes) ==== */
 (function(){
-  // Si no existe el overlay en el HTML, lo creamos (misma clase que usas en clientes)
   let overlay = document.getElementById('drawerOverlay');
   if (!overlay) {
     overlay = document.createElement('div');
@@ -2037,23 +1963,19 @@ cerrarDrawer = function(){
   const _abrir = abrirEditar;
   const _cerrar = cerrarDrawer;
 
-  // Al abrir edición, mostrar overlay
   abrirEditar = async function(id){
     await _abrir(id);
     if (overlay) overlay.hidden = false;
   };
 
-  // Al cerrar, ocultarlo
   cerrarDrawer = function(){
     if (overlay) overlay.hidden = true;
     _cerrar();
   };
 
-  // Click en overlay o botón cerrar -> cerrar
-  const btnCerrar = document.getElementById('btnCerrarDrawer'); // ya existe como const arriba, pero por si acaso
+  const btnCerrar = document.getElementById('btnCerrarDrawer');
   btnCerrar?.addEventListener('click', cerrarDrawer);
   overlay?.addEventListener('click', cerrarDrawer);
 })();
 
 })();
-

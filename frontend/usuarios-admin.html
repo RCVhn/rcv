@@ -28,12 +28,25 @@
       <!-- COLUMNA FORM CREAR (izquierda) -->
       <section class="card col-form" data-page-key="usuarios"><!-- <- ayuda a detección de página para permisos -->
         <h2 style="margin-top:0">Crear usuario</h2>
+        <!-- mantenemos novalidate porque el JS maneja los mensajes y toasts -->
         <form id="formCrear" novalidate>
           <label for="usuario">Usuario</label>
-          <input type="text" id="usuario" required placeholder="ej: jgarcia" />
+          <input type="text" id="usuario" required placeholder="ej: jgarcia" autocomplete="username" />
 
           <label for="nombre">Nombre completo</label>
-          <input type="text" id="nombre" required placeholder="ej: Juan García" />
+          <input type="text" id="nombre" required placeholder="ej: Juan García" autocomplete="name" />
+
+          <!-- NUEVO: Email -->
+          <label for="email">Correo electrónico</label>
+          <input
+            type="email"
+            id="email"
+            required
+            placeholder="ej: juan@empresa.com"
+            inputmode="email"
+            autocomplete="email"
+            spellcheck="false"
+          />
 
           <label for="rol">Rol</label>
           <select id="rol">
@@ -46,7 +59,7 @@
           </select>
 
           <label for="password">Contraseña</label>
-          <input type="password" id="password" placeholder="Mín. 8, Aa1 y símbolo" />
+          <input type="password" id="password" placeholder="Mín. 8, Aa1 y símbolo" autocomplete="new-password" />
 
           <div class="actions" style="margin-top:8px">
             <input type="checkbox" id="forzarCambio" checked />
@@ -73,7 +86,7 @@
             <!-- AÑADIDO: contador (si no existiera, el JS lo crea igual) -->
             <span id="countUsuarios" class="muted" style="margin-right:8px">Usuarios (0)</span>
             <!-- Los filtros de Rol/Estado se inyectan aquí por JS si no existen -->
-            <input id="buscarUsuario" placeholder="Buscar usuario o nombre..." />
+            <input id="buscarUsuario" placeholder="Buscar usuario, nombre o email..." />
             <button id="btnRefrescar" class="btn-ghost">Refrescar</button>
             <button id="btnExportUsuarios" class="btn-ghost">Imprimir/Exportar usuarios</button>
             <button id="btnExportUsuariosCsv" class="btn-ghost">Exportar CSV</button>
@@ -130,7 +143,7 @@
   <div id="drawerOverlay" class="drawer-overlay" hidden></div>
 
   <!-- DRAWER EDICIÓN (usa estilos globales) -->
-     <aside id="drawerEditar" class="drawer" aria-hidden="true">
+  <aside id="drawerEditar" class="drawer" aria-hidden="true">
     <div class="drawer-header">
       <strong id="drawerTitulo" class="drawer-title">Editar usuario</strong>
       <button class="drawer-close btn-ghost" id="btnCerrarDrawer" aria-label="Cerrar panel">Cerrar</button>
@@ -138,11 +151,24 @@
     <div class="drawer-body">
       <form id="formEditar" novalidate>
         <input type="hidden" id="editId" />
+
         <label>Usuario</label>
         <input type="text" id="editUsuario" disabled />
 
         <label>Nombre completo</label>
-        <input type="text" id="editNombre" required />
+        <input type="text" id="editNombre" required autocomplete="name" />
+
+        <!-- NUEVO: Email -->
+        <label for="editEmail">Correo electrónico</label>
+        <input
+          type="email"
+          id="editEmail"
+          required
+          placeholder="ej: juan@empresa.com"
+          inputmode="email"
+          autocomplete="email"
+          spellcheck="false"
+        />
 
         <label>Rol</label>
         <select id="editRol">
@@ -155,7 +181,7 @@
         </select>
 
         <label>Nueva contraseña (opcional)</label>
-        <input type="password" id="editPassword" placeholder="Dejar vacío para no cambiar" />
+        <input type="password" id="editPassword" placeholder="Dejar vacío para no cambiar" autocomplete="new-password" />
 
         <div class="actions" style="margin-top:8px">
           <input type="checkbox" id="editForzarCambio" />
