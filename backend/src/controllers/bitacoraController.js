@@ -16,15 +16,27 @@ function getBitacora(req, res) {
   const db = getDB();
   const usuario = (req.query.usuario || "").trim().toLowerCase();
 
+  // Normalizaciones de columnas (sirve para snake/camel y legacy)
+  const UA = `COALESCE(NULLIF(usuarioAfectado, ''), usuario_afectado, usuario, "user", '')`;
+  const HP = `COALESCE(NULLIF(hechoPor, ''), hecho_por, actor, hecho, '')`;
+
   let sql = `
-    SELECT id, fecha, accion, usuarioAfectado, hechoPor, detalles
+    SELECT
+      id,
+      fecha,
+      accion,
+      ${UA} AS usuarioAfectado,
+      ${HP} AS hechoPor,
+      detalles
     FROM bitacora
   `;
   const params = [];
+
   if (usuario) {
-    sql += ` WHERE lower(usuarioAfectado) = ? OR lower(hechoPor) = ?`;
+    sql += ` WHERE lower(${UA}) = ? OR lower(${HP}) = ?`;
     params.push(usuario, usuario);
   }
+
   sql += ` ORDER BY ${normOrderFecha()} DESC, id DESC`;
 
   db.all(sql, params, (err, rows) => {
