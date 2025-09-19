@@ -5,43 +5,44 @@ const { getDB } = require("../db/database");
 function isPg() {
   return (process.env.DB_ENGINE || "").toLowerCase().includes("postg");
 }
+
 function normOrderFecha() {
+  // Ordenar por fecha compatible con SQLite y Postgres
+  // Asumimos fecha en ISO. En SQLite, datetime() sirve; en PG, CAST a timestamp
   return isPg() ? "CAST(fecha AS timestamp)" : "datetime(fecha)";
 }
 
 function getBitacora(req, res) {
   const db = getDB();
-  const usuarioQ = (req.query.usuario || "").trim().toLowerCase();
+  const usuario = (req.query.usuario || "").trim().toLowerCase();
 
-  const sql = `SELECT * FROM bitacora ORDER BY ${normOrderFecha()} DESC, id DESC`;
-  db.all(sql, [], (err, rows) => {
+  // Normalizaciones de columnas (sirve para snake/camel y legacy)
+  // Nota: "user" está con comillas dobles para compatibilidad con Postgres (palabra reservada).
+  const UA = `COALESCE(NULLIF(usuarioAfectado, ''), usuario_afectado, usuario, "user", '')`;
+  const HP = `COALESCE(NULLIF(hechoPor, ''), hecho_por, actor, hecho, '')`;
+
+  let sql = `
+    SELECT
+      id,
+      fecha,
+      accion,
+      ${UA} AS usuarioAfectado,
+      ${HP} AS hechoPor,
+      detalles
+    FROM bitacora
+  `;
+  const params = [];
+
+  if (usuario) {
+    sql += ` WHERE lower(${UA}) = ? OR lower(${HP}) = ?`;
+    params.push(usuario, usuario);
+  }
+
+  sql += ` ORDER BY ${normOrderFecha()} DESC, id DESC`;
+
+  db.all(sql, params, (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
-
-    const normUA = (r) =>
-      String(r.usuarioAfectado ?? r.usuario_afectado ?? r.usuario ?? r.user ?? "").trim();
-    const normHP = (r) =>
-      String(r.hechoPor ?? r.hecho_por ?? r.actor ?? r.hecho ?? "").trim();
-
-    let out = Array.isArray(rows) ? rows : [];
-
-    // Si viene ?usuario=... filtramos ya normalizado
-    if (usuarioQ) {
-      out = out.filter(
-        (r) => normUA(r).toLowerCase() === usuarioQ || normHP(r).toLowerCase() === usuarioQ
-      );
-    }
-
-    // Devolvemos SIEMPRE las claves normalizadas
-    out = out.map((r) => ({
-      id: r.id,
-      fecha: r.fecha,
-      accion: r.accion,
-      usuarioAfectado: normUA(r),
-      hechoPor: normHP(r),
-      detalles: r.detalles,
-    }));
-
-    res.json(out);
+    res.json(rows || []);
   });
 }
 
@@ -59,14 +60,9 @@ function crearBitacora(req, res) {
     [fecha, accion, usuarioAfectado || "", hechoPor || "", detalles || ""],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({
-        id: this.lastID,
-        fecha,
-        accion,
-        usuarioAfectado: usuarioAfectado || "",
-        hechoPor: hechoPor || "",
-        detalles: detalles || "",
-      });
+      res
+        .status(201)
+        .json({ id: this.lastID, fecha, accion, usuarioAfectado, hechoPor, detalles });
     }
   );
 }
