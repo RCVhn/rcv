@@ -1,4 +1,4 @@
-// === frontend/js/usuarios-admin.js — PARTE 1/3 ===
+// === frontend/js/usuarios-admin.js — PARTE 1/2 ===
 (function () {
   'use strict';
 
@@ -66,7 +66,7 @@
     .paginator .meta{font-size:.9rem;color:var(--muted)}
     .paginator select{border:1px solid #e5e7eb;border-radius:8px;padding:6px 8px}
     .skel{position:relative;overflow:hidden;background:#f6f7f8}
-    .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(246,247,248,0) 0%, rgba(0,0,0,0.06) 50%, rgba(246,247,248,0) 0%);animation:skel-shimmer 1.2s infinite}
+    .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg, rgba(246,247,248,0) 0%, rgba(0,0,0,0.06) 50%, rgba(246,247,248,0) 100%);animation:skel-shimmer 1.2s infinite}
     @keyframes skel-shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
     .skel-row td{height:38px}
     .empty-row td{color:var(--muted);text-align:center}
@@ -111,7 +111,7 @@
     return data;
   }
 
-  // ===== Helpers de bitácora: normaliza campos + formato legible de "detalles"
+  // ===== Helpers de bitácora =====
   function __pick(obj, ...keys) {
     for (const k of keys) if (obj && obj[k] != null) return obj[k];
     return undefined;
@@ -173,7 +173,6 @@
     },
     BitacoraAPI: {
       listar: () => apiFetch(`/bitacora`),
-      // intenta server-side y si no, filtra en cliente
       listarPorUsuario: async (usuario) => {
         try {
           return await apiFetch(`/bitacora?usuario=${encodeURIComponent(usuario)}`);
@@ -300,7 +299,7 @@
   const drawer = $('#drawerEditar');
   const btnCerrarDrawer = $('#btnCerrarDrawer');
   const btnCancelarEdit = $('#btnCancelarEdit');
-  const inpBuscar = $('#buscarUsuario');
+  const inpBuscar = $('#buscarUsuario'); // <— definido una sola vez
   const btnRefrescar = $('#btnRefrescar');
   const btnExportUsuarios = $('#btnExportUsuarios');
   const btnExportUsuariosCsv = $('#btnExportUsuariosCsv');
@@ -562,7 +561,7 @@
       };
     });
 
-    // Guardado robusto (sin duplicar handlers)
+    // Guardado robusto
     const saveBtn = document.getElementById('btnSavePerms');
     if (!saveBtn._wired) {
       saveBtn._wired = true;
@@ -691,7 +690,6 @@
       tbody.appendChild(tr);
     });
   }
-// === frontend/js/usuarios-admin.js — PARTE 2/3 ===
 
   // ===== Bitácora (render legible) =====
   function renderBitacora(rows) {
@@ -721,7 +719,7 @@
     });
   }
 
-  // --- Menú expandible bajo la fila (lista) ---
+  // --- Menú expandible bajo la fila (legacy) ---
   function closeMenuRows() { document.querySelectorAll('tr.menu-row').forEach(r => r.remove()); }
   function toggleMenuRow(tr, u) {
     const next = tr.nextElementSibling;
@@ -986,7 +984,7 @@
     else dlg.setAttribute('open','');
   }
 
-  // Hook global invocado por el menú “📒 Ver bitácora”
+  // Hook global para “📒 Ver bitácora”
   window.accionVerBitacora = async function(idUsuario){
     let u = (window.getUsuarios?.() || []).find(x => Number(x.id) === Number(idUsuario));
     if (!u) { try { u = await API.UsuariosAPI.obtener(idUsuario); } catch {} }
@@ -1022,8 +1020,9 @@
   });
   function msgCrear(t){ const n=$('#msgFormCrear'); if(n) n.textContent=t||''; }
 
-  // --- Tabla: abrir/cerrar menú ---
+  // --- Tabla: abrir/cerrar menú legacy (se desactiva si hay kebab flotante) ---
   tbody && tbody.addEventListener('click', (e) => {
+    if (window.__USE_FLOATING_KEBAB) return; // evita doble menú
     const btn = e.target.closest('.btn-menu');
     if (!btn) return;
     const tr = btn.closest('tr'); if (!tr) return;
@@ -1033,8 +1032,9 @@
     toggleMenuRow(tr, u);
   });
 
-  // --- Acciones del menú (lista) ---
+  // --- Acciones del menú legacy ---
   tbody && tbody.addEventListener('click', async (e) => {
+    if (window.__USE_FLOATING_KEBAB) return;
     const actBtn = e.target.closest('.menu-row .row-menu button');
     if (!actBtn) return;
     const row = actBtn.closest('tr.menu-row');
@@ -1199,11 +1199,13 @@
     }
   });
   function msgEditar(t){ const n=$('#msgFormEditar'); if(n) n.textContent=t||''; }
-// === frontend/js/usuarios-admin.js — PARTE 3/3 ===
+
+// === (continúa en PARTE 2/2) ===
+// === frontend/js/usuarios-admin.js — PARTE 2/2 ===
 
   // --- Buscar / refrescar ---
   let buscarTimer;
-  const inpBuscar = document.getElementById('buscarUsuario') || document.getElementById('buscarUsuario'); // safety
+  // ⚠️ No redeclaramos inpBuscar: ya existe arriba
   inpBuscar && inpBuscar.addEventListener('input', ()=>{
     clearTimeout(buscarTimer);
     buscarTimer = setTimeout(()=>{ pagUsuarios.page = 1; cargarUsuarios(inpBuscar.value.trim()); }, 250);
@@ -1316,6 +1318,8 @@
     (function () {
       const tabla = document.querySelector('#tablaUsuarios tbody');
       if (!tabla) return;
+
+      window.__USE_FLOATING_KEBAB = true; // desactiva el menú-en-fila legacy
 
       let menu = document.getElementById('kebabMenu');
       if (!menu) {
@@ -1453,7 +1457,10 @@
         const u = currentUser;
 
         try {
-          if (act === 'editar') { if (typeof window.abrirEditar === 'function') window.abrirEditar(u.id); closeKebabMenu(); return; }
+          if (act === 'editar') {
+            if (typeof window.abrirEditar === 'function') window.abrirEditar(u.id);
+            closeKebabMenu(); return;
+          }
 
           if (act === 'permisos') {
             const user = await API.UsuariosAPI.obtener(u.id);
